@@ -1,3 +1,7 @@
-from magi.magicollections import MagiCollection
+from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection
 
-# Create your magicollections here.
+############################################################
+# Activities
+
+class ActivityCollection(_ActivityCollection):
+    enabled = False

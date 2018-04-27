@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from django.conf import settings as django_settings
+from magi.default_settings import DEFAULT_ENABLED_PAGES
 from majilove import models
 
-# Configure and personalize your website here.
+############################################################
+# General settings
 
 SITE_NAME = 'Maji Love'
 SITE_URL = 'http://maji.love/'
@@ -12,3 +14,9 @@ GAME_NAME = u'Utano☆Princesama Shining Live'
 DISQUS_SHORTNAME = 'majilove'
 ACCOUNT_MODEL = models.Account
 COLOR = '#158399'
+
+############################################################
+# Enables pages
+
+ENABLED_PAGES = DEFAULT_ENABLED_PAGES
+ENABLED_PAGES['index']['enabled'] = True
