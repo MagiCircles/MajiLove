@@ -10,7 +10,7 @@ from majilove import models
 SITE_NAME = 'Maji Love'
 SITE_URL = 'http://maji.love/'
 SITE_IMAGE = 'majilove.png'
-SITE_STATIC_URL = '//localhost:{}/'.format(django_settings.DEBUG_PORT) if django_settings.DEBUG else '//i.majilove.com/'
+SITE_STATIC_URL = '//localhost:{}/'.format(django_settings.DEBUG_PORT) if django_settings.DEBUG else '//i.maji.love/'
 GAME_NAME = u'Utano☆Princesama Shining Live'
 DISQUS_SHORTNAME = 'majilove'
 ACCOUNT_MODEL = models.Account
