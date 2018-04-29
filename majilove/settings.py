@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime, pytz
 from django.conf import settings as django_settings
 from magi.default_settings import DEFAULT_ENABLED_PAGES
 from majilove import models
@@ -16,7 +17,17 @@ ACCOUNT_MODEL = models.Account
 COLOR = '#158399'
 
 ############################################################
-# Enables pages
+# Enabled pages
 
 ENABLED_PAGES = DEFAULT_ENABLED_PAGES
 ENABLED_PAGES['index']['enabled'] = True
+
+############################################################
+# Social
+
+TWITTER_HANDLE = "MajiLoveCollect"
+
+############################################################
+# Prelaunch details
+
+LAUNCH_DATE = datetime.datetime(2019, 8, 1, 12, 0, 0, tzinfo=pytz.UTC)
