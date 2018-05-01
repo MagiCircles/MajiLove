@@ -12,7 +12,6 @@ SITE_URL = 'http://maji.love/'
 SITE_IMAGE = 'majilove.png'
 SITE_STATIC_URL = '//localhost:{}/'.format(django_settings.DEBUG_PORT) if django_settings.DEBUG else '//i.maji.love/'
 GAME_NAME = u'Utano☆Princesama Shining Live'
-DISQUS_SHORTNAME = 'majilove'
 ACCOUNT_MODEL = models.Account
 COLOR = '#158399'
 
@@ -26,11 +25,18 @@ ENABLED_PAGES['index']['enabled'] = True
 # Social
 
 TWITTER_HANDLE = "MajiLoveCollect"
+GITHUB_REPOSITORY = ('MagiCircles', 'MajiLove')
 
 ############################################################
 # Prelaunch details
 
 LAUNCH_DATE = datetime.datetime(2019, 8, 1, 12, 0, 0, tzinfo=pytz.UTC)
+
+############################################################
+# Technical details
+
+GOOGLE_ANALYTICS = 'UA-118452679-1'
+DISQUS_SHORTNAME = 'maji-love'
 
 ############################################################
 # Generated settings
