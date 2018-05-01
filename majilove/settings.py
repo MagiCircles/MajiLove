@@ -31,3 +31,10 @@ TWITTER_HANDLE = "MajiLoveCollect"
 # Prelaunch details
 
 LAUNCH_DATE = datetime.datetime(2019, 8, 1, 12, 0, 0, tzinfo=pytz.UTC)
+
+############################################################
+# Generated settings
+
+TOTAL_DONATORS = django_settings.TOTAL_DONATORS
+LATEST_NEWS = django_settings.LATEST_NEWS
+STAFF_CONFIGURATIONS = django_settings.STAFF_CONFIGURATIONS
