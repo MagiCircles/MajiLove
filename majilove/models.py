@@ -57,7 +57,7 @@ class Idol(MagiModel):
 
     hometown = models.CharField(_('Hometown'), max_length=100, null=True)
 
-    image = models.ImageField(_('Image'), upload_to=uploadItem('i'))
+    image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
 ############################################################
 # Photos
@@ -75,6 +75,56 @@ class Photo(MagiModel):
         "SR",
         "UR"
     )
+
+############################################################
+# Songs
+
+class Song(MagiModel):
+    collection_name = 'song'
+
+    DIFFICULTY_VALIDATORS = [
+        MinValueValidator(1),
+        MaxValueValidator(13),
+    ]
+
+    DIFFICULTIES = [
+        ('easy', _('Easy')),
+        ('normal', _('Normal')),
+        ('hard', _('Hard')),
+        ('pro', _('Pro')),
+    ]
+
+    SONGWRITERS_DETAILS = [
+        ('composer', _('Composer')),
+        ('lyricist', _('Lyricist')),
+        ('arranger', _('Arranger')),
+    ]
+
+    singers = models.ManyToManyField(Idol, related_name="sung_songs", verbose_name=_('Singers'))
+
+    image = models.ImageField('Album cover', upload_to=uploadItem('song'))
+
+    japanese_name = models.CharField(_('Title'), max_length=100, unique=True)
+    romaji_name = models.CharField(string_concat(_('Title'), ' (', _('Romaji'), ')'), max_length=100, null=True)
+
+    name = models.CharField(string_concat(_('Title'), ' (', _('Translation'), ')'), max_length=100, null=True)
+    NAMES_CHOICES = ALT_LANGUAGES_EXCEPT_JP
+    d_names = models.TextField(_('Title'), null=True)
+
+
+    easy_notes = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Notes')), null=True)
+    easy_difficulty = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    normal_notes = models.PositiveIntegerField(string_concat(_('Normal'), ' - ', _('Notes')), null=True)
+    normal_difficulty = models.PositiveIntegerField(string_concat(_('Normal'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    hard_notes = models.PositiveIntegerField(string_concat(_('Hard'), ' - ', _('Notes')), null=True)
+    hard_difficulty = models.PositiveIntegerField(string_concat(_('Hard'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    pro_notes = models.PositiveIntegerField(string_concat(_('Pro'), ' - ', _('Notes')), null=True)
+    pro_difficulty = models.PositiveIntegerField(string_concat(_('Pro'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+
+    composer = models.CharField(_('Composer'), max_length=100, null=True)
+    lyricist = models.CharField(_('Lyricist'), max_length=100, null=True)
+    arranger = models.CharField(_('Arranger'), max_length=100, null=True)
+
 
 
 
