@@ -6,11 +6,13 @@
 @import "main.less";
 @import "mixins/magicircles.less";
 
+@import url('https://fonts.googleapis.com/css?family=Open+Sans|Montserrat:700');
+
 /******************************************/
 /* Variables */
 
-@mainColor: #158399;
-@secondaryColor: #FCC801;
+@mainColor: #5acccd;
+@secondaryColor: #158399;
 
 /******************************************/
 /* Tools */
@@ -23,10 +25,32 @@ html {
     .magicircles(@mainColor, @secondaryColor);
 }
 
+body {
+    font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3, h4, .title, .navbar, .btn-lg, .btn-xl {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 700;
+}
+
 @import "generated_colors.less";
 
 /******************************************/
 /* Single pages */
+
+// Donate page
+
+.donate-text {
+    padding: 90px 20px;
+    max-width: 500px;
+    margin: auto;
+}
+
+.donate-image {
+    border-bottom-left-radius: 42%;
+    border-bottom-right-radius: 42%;
+}
 
 /******************************************/
 /* MagiCollections */
