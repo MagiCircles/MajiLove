@@ -10,13 +10,7 @@ from magi.abstract_models import BaseAccount
 # Utility stuff
 
 LANGUAGES_NEED_OWN_NAME = [ l for l in django_settings.LANGUAGES if l[0] in ['ru', 'zh-hans', 'zh-hant', 'kr'] ]
-LANGUAGES_NEED_OWN_NAME_KEYS = [ l[0] for l in django_settings.LANGUAGES if l[0] in ['ru', 'zh-hans', 'zh-hant', 'kr'] ]
-LANGUAGES_DIFFERENT_CHARSET = [ l for l in django_settings.LANGUAGES if l[0] in ['ja', 'ru', 'zh-hans', 'zh-hant', 'kr'] ]
-LANGUAGES_DIFFERENT_CHARSET_KEYS = [ l[0] for l in django_settings.LANGUAGES if l[0] in ['ja', 'ru', 'zh-hans', 'zh-hant', 'kr'] ]
 ALL_ALT_LANGUAGES = [ l for l in django_settings.LANGUAGES if l[0] != 'en' ]
-ALL_ALT_LANGUAGES_KEYS = [ l[0] for l in django_settings.LANGUAGES if l[0] != 'en' ]
-ALT_LANGUAGES_EXCEPT_JP = [ l for l in django_settings.LANGUAGES if l[0] not in ['en', 'ja'] ]
-ALT_LANGUAGES_EXCEPT_JP_KEYS = [ l[0] for l in django_settings.LANGUAGES if l[0] not in ['en', 'ja'] ]
 
 
 
@@ -34,7 +28,7 @@ class Idol(MagiModel):
 
     name = models.CharField(string_concat(_('Name'), ' (', _('Romaji'), ')'), max_length=100, unique=True)
 
-    japanese_name = models.CharField(string_concat(_('Name'), ' (', _('Japanese'), ')'), max_length = 100, unique=True)
+    japanese_name = models.CharField(string_concat(_('Name'), ' (', _('Japanese'), ')'), max_length=100, unique=True)
 
     NAMES_CHOICES = LANGUAGES_NEED_OWN_NAME
     d_names = models.TextField(_('Name'), null=True)
@@ -45,11 +39,13 @@ class Idol(MagiModel):
             return self.japanese_name
         return self.names.get(get_language(), self.name)
 
-    romaji_CV = models.CharField(_('CV'), help_text='In romaji', max_length=100, null=True)
+    romaji_voice_actor_name = models.CharField(_('Voice actor'), help_text='In romaji', max_length=100, null=True)
 
-    CV = models.CharField(string_concat(_('CV'), ' (', _('Japanese'), ')'), help_text='In Japanese characters.', max_length=100, null=True)
+    voice_actor_name = models.CharField(string_concat(_('Voice actor'), ' (', _('Japanese'), ')'), help_text='In Japanese characters.', max_length=100, null=True)
 
-    bio = models.TextField(_('Bio'), max_length=1000)
+    description = models.TextField(_('Description'), max_length=1000, null=True)
+    DESCRIPTIONS_CHOICES = ALL_ALT_LANGUAGES
+    d_descriptions = models.TextField(_('Description'), null=True)
 
     # in cm
     height = models.PositiveIntegerField(_('Height'), null=True)
@@ -58,26 +54,47 @@ class Idol(MagiModel):
 
     @property
     def display_weight(self):
-        if self.weight: return self.weight
-        return '?' # this is how Ai's weight is displayed in game
+        return self.weight or '?'
 
-    BLOOD_CHOICES = (
+    BLOOD_TYPE_CHOICES = (
         'O',
         'A',
         'B',
         'AB',
-        '?'
     )
 
-    i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_CHOICES), null=True)
+    i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_TYPE_CHOICES), null=True)
+
+    @property
+    def display_bloody_type(self):
+        return self.blood_type or '?'
 
     birthday = models.DateField(_('Birthday'), null=True, help_text='The year is not used, so write whatever')
 
-    star_sign = models.CharField(_('Astrological Sign'), max_length=100, null=True)
+    ASTROLOGICAL_SIGN_CHOICES = (
+        ('Leo', _('Leo')),
+        ('Aries', _('Aries')),
+        ('Libra', _('Libra')),
+        ('Virgo', _('Virgo')),
+        ('Scorpio', _('Scorpio')),
+        ('Capricorn', _('Capricorn')),
+        ('Pisces', _('Pisces')),
+        ('Gemini', _('Gemini')),
+        ('Cancer', _('Cancer')),
+        ('Sagittarius', _('Sagittarius')),
+        ('Aquarius', _('Aquarius')),
+        ('Taurus', _('Taurus')),
+    )
+
+    i_astrological_sign = models.PositiveIntegerField(_('Astrological Sign'), choices=i_choices(ASTROLOGICAL_SIGN_CHOICES), null=True)
 
     instrument = models.CharField(_('Instrument'), max_length=100, null=True)
+    INSTRUMENTS_CHOICES = ALL_ALT_LANGUAGES
+    d_instruments = models.TextField(_('Instrument'), null=True)
 
     hometown = models.CharField(_('Hometown'), max_length=100, null=True)
+    HOMETOWNS_CHOICES = LANGUAGES_NEED_OWN_NAME
+    d_hometowns = models.TextField(_('Hometown'), null=True)
 
     image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
