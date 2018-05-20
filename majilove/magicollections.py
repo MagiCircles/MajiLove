@@ -38,7 +38,7 @@ class IdolCollection(MagiCollection):
     # want the following as 'microphone' https://www.flaticon.com/free-icon/karaoke-microphone-icon_69364
     #icon = 'microphone'
     #navbar_link_list = 'utapri'
-    translated_fields = ('name', 'description', 'instrument', 'hometown')
+    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
 
     form_class = forms.IdolForm
 
