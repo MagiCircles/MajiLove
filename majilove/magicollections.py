@@ -1,4 +1,5 @@
 from django.utils.translation import ugettext_lazy as _
+from django.utils.formats import dateformat
 from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection, BadgeCollection as _BadgeCollection, StaffConfigurationCollection as _StaffConfigurationCollection, DonateCollection as _DonateCollection
 from magi.utils import setSubField
 from majilove import models, forms
@@ -34,7 +35,7 @@ IDOL_ICONS = {
     'name': 'id',
     'japanese_name': 'id',
     'voice_actor_name': 'profile',
-    'japanese_voice_actor_name': 'profile',
+    'romaji_voice_actor_name': 'profile',
     'birthday': 'event',
     'instrument': 'song',
     'description': 'id',
@@ -44,8 +45,10 @@ IDOL_ICONS = {
 }
 
 IDOL_ORDER =[
-    'name', 'japanese_name', 'voice_actor_name',
-    'japanese_voice_actor_name',
+    'name',
+    'japanese_name',
+    'romaji_voice_actor_name',
+    'voice_actor_name',
     'height',
     'display_weight',
     'display_blood_type',
@@ -93,5 +96,7 @@ class IdolCollection(MagiCollection):
             exclude_fields=exclude_fields, extra_fields=extra_fields, order=order, **kwargs)
         setSubField(fields, 'height', key='value', value='{} cm'.format(item.height))
         setSubField(fields, 'description', key='type', value='long_text')
+        setSubField(fields, 'birthday', key='type', value='text')
+        setSubField(fields, 'birthday', key='value', value=lambda f: dateformat.format(item.birthday, "F d"))
         return fields
 ############################################################
