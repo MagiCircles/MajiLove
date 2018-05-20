@@ -66,7 +66,7 @@ class Idol(MagiModel):
     i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_TYPE_CHOICES), null=True)
 
     @property
-    def display_bloody_type(self):
+    def display_blood_type(self):
         return self.blood_type or '?'
 
     birthday = models.DateField(_('Birthday'), null=True, help_text='The year is not used, so write whatever')
