@@ -1,5 +1,6 @@
 from django.utils.translation import ugettext_lazy as _
 from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection, BadgeCollection as _BadgeCollection, StaffConfigurationCollection as _StaffConfigurationCollection, DonateCollection as _DonateCollection
+from magi.utils import setSubField
 from majilove import models, forms
 
 ############################################################
@@ -29,6 +30,32 @@ class DonateCollection(_DonateCollection):
 ############################################################
 # Idol Collection
 
+IDOL_ICONS = {
+    'name': 'id',
+    'japanese_name': 'id',
+    'voice_actor_name': 'profile',
+    'japanese_voice_actor_name': 'profile',
+    'birthday': 'event',
+    'instrument': 'song',
+    'description': 'id',
+    'astrological_sign': 'idolized',
+    'hometown': 'world',
+    'height': 'scoreup',
+}
+
+IDOL_ORDER =[
+    'name', 'japanese_name', 'voice_actor_name',
+    'japanese_voice_actor_name',
+    'height',
+    'display_weight',
+    'display_blood_type',
+    'birthday',
+    'astrological_sign',
+    'instrument',
+    'hometown',
+    'description',
+]
+
 class IdolCollection(MagiCollection):
     queryset = models.Idol.objects.all()
     title = _('Idol')
@@ -45,4 +72,26 @@ class IdolCollection(MagiCollection):
     reportable = False
     blockable = False
 
+    def to_fields(self, view, item, exclude_fields=None, extra_fields=None, order=None, *args, **kwargs):
+        if exclude_fields is None: exclude_fields = []
+        if extra_fields is None: extra_fields = []
+        if order is None: order = IDOL_ORDER
+        exclude_fields += ['d_names', 'weight', 'blood_type']
+        extra_fields.append(('display_weight', {
+            'verbose_name': _(u'Weight'),
+            'icon': 'scoreup',
+            'value': item.display_weight,
+            'type': 'text'
+            }))
+        extra_fields.append(('display_blood_type', {
+            'verbose_name': _(u'Blood type'),
+            'icon': 'hp',
+            'value': item.display_blood_type,
+            'type': 'text'
+            }))
+        fields = super(IdolCollection, self).to_fields(view, item, *args, icons=IDOL_ICONS,
+            exclude_fields=exclude_fields, extra_fields=extra_fields, order=order, **kwargs)
+        setSubField(fields, 'height', key='value', value='{} cm'.format(item.height))
+        setSubField(fields, 'description', key='type', value='long_text')
+        return fields
 ############################################################

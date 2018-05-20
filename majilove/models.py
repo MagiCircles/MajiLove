@@ -54,7 +54,7 @@ class Idol(MagiModel):
 
     @property
     def display_weight(self):
-        return self.weight or '?'
+        return '{} kg'.format(self.weight) if self.weight else '?'
 
     BLOOD_TYPE_CHOICES = (
         'O',
@@ -96,9 +96,9 @@ class Idol(MagiModel):
     HOMETOWNS_CHOICES = LANGUAGES_NEED_OWN_NAME
     d_hometowns = models.TextField(_('Hometown'), null=True)
 
-    image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
+    image = models.ImageField(_('Image'), upload_to=uploadItem('idol'), null=True)
 
-    small_image = models.ImageField(string_concat(_('Image'), ' (', _('Small'), ')'), upload_to=uploadItem('idol/small'))
+    small_image = models.ImageField(string_concat(_('Image'), ' (', _('Small'), ')'), upload_to=uploadItem('idol/small'), null=True)
 
     def __unicode__(self):
         return unicode(self.t_name)
