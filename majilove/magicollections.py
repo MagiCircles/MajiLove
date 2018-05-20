@@ -1,6 +1,6 @@
 from django.utils.translation import ugettext_lazy as _
 from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection, BadgeCollection as _BadgeCollection, StaffConfigurationCollection as _StaffConfigurationCollection, DonateCollection as _DonateCollection
-from majilove import models
+from majilove import models, forms
 
 ############################################################
 # Activities
@@ -39,6 +39,8 @@ class IdolCollection(MagiCollection):
     #icon = 'microphone'
     #navbar_link_list = 'utapri'
     translated_fields = ('name', 'description', 'instrument', 'hometown')
+
+    form_class = forms.IdolForm
 
     reportable = False
     blockable = False

@@ -98,7 +98,7 @@ class Idol(MagiModel):
 
     image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
-    small_image = models.ImageField(_('Image'), upload_to=uploadItem('idol/small'))
+    small_image = models.ImageField(string_concat(_('Image'), ' (', _('Small'), ')'), upload_to=uploadItem('idol/small'))
 
     def __unicode__(self):
         return unicode(self.t_name)
