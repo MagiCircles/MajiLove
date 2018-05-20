@@ -42,6 +42,7 @@ IDOL_ICONS = {
     'astrological_sign': 'idolized',
     'hometown': 'world',
     'height': 'scoreup',
+    'hobby': 'activities'
 }
 
 IDOL_ORDER =[
@@ -55,6 +56,7 @@ IDOL_ORDER =[
     'birthday',
     'astrological_sign',
     'instrument',
+    'hobby',
     'hometown',
     'description',
 ]
@@ -68,7 +70,7 @@ class IdolCollection(MagiCollection):
     # want the following as 'microphone' https://www.flaticon.com/free-icon/karaoke-microphone-icon_69364
     #icon = 'microphone'
     #navbar_link_list = 'utapri'
-    translated_fields = ('name', 'description', 'instrument', 'hometown')
+    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
 
     form_class = forms.IdolForm
 
@@ -79,7 +81,7 @@ class IdolCollection(MagiCollection):
         if exclude_fields is None: exclude_fields = []
         if extra_fields is None: extra_fields = []
         if order is None: order = IDOL_ORDER
-        exclude_fields += ['d_names', 'weight', 'blood_type']
+        exclude_fields += ['d_names', 'weight', 'i_blood_type']
         extra_fields.append(('display_weight', {
             'verbose_name': _(u'Weight'),
             'icon': 'scoreup',
