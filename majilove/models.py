@@ -96,6 +96,10 @@ class Idol(MagiModel):
     HOMETOWNS_CHOICES = LANGUAGES_NEED_OWN_NAME
     d_hometowns = models.TextField(_('Hometown'), null=True)
 
+    hobby = models.CharField(_('Hobby'), max_length=100, null=True)
+    HOBBYS_CHOICES = ALL_ALT_LANGUAGES
+    d_hobbys = models.TextField(_('Hobby'), null=True)
+
     image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
     small_image = models.ImageField(_('Image'), upload_to=uploadItem('idol/small'))
