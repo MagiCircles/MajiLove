@@ -507,5 +507,3 @@ class Photo(MagiModel):
                     else self.name or ''),
             )
         return u''
-=======
->>>>>>> 7f218d89d1bbccc5a8308752ce15ce6b6ea0c69d
