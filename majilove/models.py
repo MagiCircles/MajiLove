@@ -340,7 +340,7 @@ class Photo(MagiModel):
             'translation': _(u'Good lock'),
             'english': 'Good lock',
             # need someone to check this, feels too long
-            'japanese_translation': u'BADをGREATにする',
+            'japanese_translation': u'BADをGREATに',
             'icon': 'perfectlock',
 
             'variables': ['note_count'],
@@ -351,7 +351,7 @@ class Photo(MagiModel):
             'translation': _(u'Great lock'),
             'english': 'Great lock',
             # also seems long, need to check which comma to use
-            'japanese_translation': u'BAD,GREATをPERFECTにする',
+            'japanese_translation': u'BAD,GREATをPERFECTに',
             'icon': 'perfectlock',
 
             'variables': ['note_count'],
