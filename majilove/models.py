@@ -68,7 +68,7 @@ class Idol(MagiModel):
     i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_TYPE_CHOICES), null=True)
 
     @property
-    def display_bloody_type(self):
+    def display_blood_type(self):
         return self.blood_type or '?'
 
     birthday = models.DateField(_('Birthday'), null=True, help_text='The year is not used, so write whatever')
@@ -97,6 +97,10 @@ class Idol(MagiModel):
     hometown = models.CharField(_('Hometown'), max_length=100, null=True)
     HOMETOWNS_CHOICES = LANGUAGES_NEED_OWN_NAME
     d_hometowns = models.TextField(_('Hometown'), null=True)
+
+    hobby = models.CharField(_('Hobby'), max_length=100, null=True)
+    HOBBYS_CHOICES = ALL_ALT_LANGUAGES
+    d_hobbys = models.TextField(_('Hobby'), null=True)
 
     image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
@@ -503,3 +507,5 @@ class Photo(MagiModel):
                     else self.name or ''),
             )
         return u''
+=======
+>>>>>>> 7f218d89d1bbccc5a8308752ce15ce6b6ea0c69d
