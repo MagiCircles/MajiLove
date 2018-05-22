@@ -176,7 +176,12 @@ class Song(MagiModel):
 
     length = models.PositiveIntegerField(_('Length'), null=True)
 
-    #TODO: unlock method
+    # just going to have unlock method for regular permanent songs for now
+    unlock_chapter = models.CharField(_('Unlock Chapter'), max_length=100, null=True)
+    UNLOCK_CHAPTERS_CHOICES = ALL_ALT_LANGUAGES
+    d_unlock_chapters = models.TextField(_('Unlock Chapter'), null=True)
+
+    #TODO: other unlock methods
 
     def __unicode__(self):
         return unicode(self.t_name)
