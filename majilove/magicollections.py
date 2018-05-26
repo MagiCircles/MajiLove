@@ -35,7 +35,7 @@ class IdolCollection(MagiCollection):
     plural_title = _('Idols')
     navbar_title = _('Idols')
     image = 'mic'
-    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby', 'astrological_sign')
+    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby', 'i_astrological_sign')
 
     form_class = forms.IdolForm
 
