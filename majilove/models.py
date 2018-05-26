@@ -6,6 +6,7 @@ from django.conf import settings as django_settings
 from magi.models import User, uploadItem
 from magi.item_model import MagiModel, i_choices, getInfoFromChoices
 from magi.abstract_models import BaseAccount
+from magi.utils import templateVariables
 
 
 ############################################################
@@ -114,40 +115,36 @@ class Idol(MagiModel):
 
 class Photo(MagiModel):
     collection_name = 'photo'
+
     owner = models.ForeignKey(User, related_name='added_photos')
     id = models.PositiveIntegerField(_('ID'), unique=True, primary_key=True, db_index=True)
 
     name = models.CharField(_('Photo Name'), max_length=100)
-    japanese_name = models.CharField(string_concat(_('Photo Name'), ' (', _('Japanese'), ')'), max_length=100)
-    NAMES_CHOICES = LANGUAGES_NEED_OWN_NAME
-    d_names = models.TextField(_('Title'), null=True)
-    @property
-    def t_name(Self):
-        if get_language() == 'ja':
-            return self.japanese_name
-        return self.names.get(get_language(), self.name)
+    NAMES_CHOICES = ALL_ALT_LANGUAGES
+    d_names = models.TextField(_('Photo Name'), null=True)
 
     release_date = models.DateField(_('Release date'), null=True, db_index=True)
-    idol = models.ForeignKey(Idol, verbose_name=_('Idol'), related_name='photos', null=True, on_delete=models.SET_NULL, db_index=True)
+    idol = models.ForeignKey(Idol, verbose_name=_('Idol'), related_name='photos', db_index=True)
 
     # Images
 
     # The square icon
-    icon = models.ImageField(_('Icon'), upload_to=uploadItem('p'), null=True)
-    icon_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('p/a'), null=True)
+    image = models.ImageField(_('Icon'), upload_to=uploadItem('photo'), null=True)
+    image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
 
     # Full photo
-    image = models.ImageField(_('Photo Image'), upload_to=uploadItem('p/image'))
-    image_special_shot = models.ImageField(string_concat(_('Photo Image'), ' (', _('Special Short'), ')'), upload_to=uploadItem('p/image/a'), null=True)
+    full_photo = models.ImageField(_('Photo Image'), upload_to=uploadItem('photo/image'))
+    full_photo_special_shot = models.ImageField(string_concat(_('Photo Image'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/image/specialshot'), null=True)
 
-    transparent = models.ImageField(_('Transparent'), upload_to=uploadItem('p/transparent'), null=True)
-    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special shot'), ')'), upload_to=uploadItem('p/transparent/a'), null=True)
+    transparent = models.ImageField(_('Transparent'), upload_to=uploadItem('photo/transparent'), null=True)
+    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/transparent/specialshot'), null=True)
 
-    poster = models.ImageField(_('Poster'), upload_to=uploadItem('p/poster'), null=True)
-    poster_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('p/poster/a'), null=True)
+    # Poster
+    art = models.ImageField(_('Poster'), upload_to=uploadItem('photo/poster'), null=True)
+    art_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/poster/specialshot'), null=True)
 
-    message = models.ImageField(_('Message'), upload_to=uploadItem('p/message'), null=True)
-    autograph = models.ImageField(_('Autograph'), upload_to=uploadItem('p/autograph'), null=True)
+    message = models.ImageField(_('Message'), upload_to=uploadItem('photo/message'), null=True)
+    autograph = models.ImageField(_('Autograph'), upload_to=uploadItem('photo/autograph'), null=True)
 
     message_text = models.TextField(string_concat(_('Message Text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
     message_translation = models.TextField(_('Message translation'), max_length=500, null=True)
@@ -158,33 +155,33 @@ class Photo(MagiModel):
         if get_language() == 'ja': return None
         return self.message_translations.get(get_language(), self.message_translation)
 
-    # photo stats
+    # Photo statistics
 
     #triplets_in_moments is number of sets of +30 dance/vocal/charm sqaures before 100%
     RARITIES = OrderedDict([
-        (1, {
-            'short_form': 'N',
+        ('N', {
+            'translation': 'N',
             'special_shot_percentage': None,
             'outfit_unlock_percentage': 0,
             'triplets_in_moments' : 1,
             'max_levels': 20,
             }),
-        (2, {
-            'short_form': 'R',
+        ('R', {
+            'translation': 'R',
             'special_shot_percentage': 100,
             'outfit_unlock_percentage': 50,
             'triplets_in_moments' : 4,
             'max_levels': (30, 50),
             }),
-        (3, {
-            'short_form': 'SR',
+        ('SR', {
+            'translation': 'SR',
             'special_shot_percentage': 83,
             'outfit_unlock_percentage': 33,
             'triplets_in_moments' : 6,
             'max_levels': (40, 60),
             }),
-        (4, {
-            'short_form': 'UR',
+        ('UR', {
+            'translation': 'UR',
             'special_shot_percentage': 87,
             'outfit_unlock_percentage': 25,
             'triplets_in_moments': 8,
@@ -192,61 +189,33 @@ class Photo(MagiModel):
         }),
     ])
 
-    RARITY_CHOICES = [(_name, _info['short_form']) for _name, _info in RARITIES.items()]
-    RARITY_WITHOUT_I_CHOICES = True
+    RARITY_CHOICES = [(_name, _info['translation']) for _name, _info in RARITIES.items()]
     i_rarity = models.PositiveIntegerField(_('Rarity'), choices=i_choices(RARITY_CHOICES), db_index=True)
+    rarity_max_levels = property(getInfoFromChoices('rarity', RARITIES, 'max_levels'))
+    rarity_special_shot_perecentage = property(getInfoFromChoices('rarity', RARITIES, 'special_shot_percentage'))
+    rarity_triplets_in_moments = property(getInfoFromChoices('rarity', RARITIES, 'triplets_in_moments'))
 
-    COMBINABLE_RARITIES = [2, 3, 4]
+    COMBINABLE_RARITIES = ['R', 'SR', 'UR']
 
     @property
     def combinable(self):
-        return self.i_rarity in self.COMBINABLE_RARITIES
+        return self.rarity in self.COMBINABLE_RARITIES
 
     @property
     def single_max_level(self):
-        return RARITIES[self.i_rarity]['max_levels'][0] if self.combinable else RARITIES[self.i_rarity]['max_levels']
+        return self.rarity_max_levels[0] if self.combinable else self.rarity_max_levels
 
     @property
     def max_max_level(self):
-        return RARITIES[self.i_rarity]['max_levels'][1] if self.combinable else RARITIES[self.i_rarity]['max_levels']
+        return self.rarity_max_levels[1] if self.combinable else self.rarity_max_levels
 
-    COLORS= OrderedDict([
-        (1, { # yellow
-            'translation': _('Star'),
-            'english': u'Star'
-        }),
-        (2, { # red
-            'translation': _('Shine'),
-            'english': u'Shine'
-        }),
-        (3, { # blue
-            'translation': _('Dream'),
-            'english': u'Dream'
-        })
+    COLOR_CHOICES = OrderedDict([
+        ('star', _('Star')), # Yellow
+        ('shine', _('Shine')), # Red
+        ('dream', _('Dream')), # Blue
     ])
 
-    COLOR_CHOICES = [(_name, _info['translation']) for _name, _info in COLORS.items()]
-    COLOR_WITHOUT_I_CHOICES=True
-    i_color = models.PositiveIntegerField(_('Color'), choices=COLOR_CHOICES, db_index=True)
-    english_color = property(getInfoFromChoices('color', COLORS, 'english'))
-
-    STATS = OrderedDict([
-        (1, {
-            'translation': _('Dance'),
-            'english': u'Dance',
-            'japanese_translation': u'DANCE'
-        }),
-        (2, {
-            'translation': _('Vocal'),
-            'english': u'Vocal',
-            'japanese_translation': u'VOCAL'
-        }),
-        (3, {
-            'translation': _('Charm'),
-            'english': u'Charm',
-            'japanese_translation': u'ACT'
-        })
-    ])
+    i_color = models.PositiveIntegerField(_('Color'), choices=i_choices(COLOR_CHOICES), db_index=True)
 
     dance_min = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Minimum'), ')'), default=0)
     dance_single_copy_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Single Copy Maximum'), ')'), default=0)
@@ -274,201 +243,197 @@ class Photo(MagiModel):
 
     # Leader Skill
     LEADER_SKILL_INFO = {
-        'variables': ['color', 'stat', 'percentage'],
-        'template': _(u'{color} {stat} +{percentage}%'),
-        'japanese_template': u'{color} の{stat}パフォーマンス{percentage}%上昇'
+        'template': _(u'{t_leader_skill_color} {t_leader_skill_stat} +{leader_skill_percentage}%'),
+        'japanese_template': u'{t_leader_skill_color} の{t_leader_skill_stat}パフォーマンス{leader_skill_percentage}%上昇',
     }
 
-    #currently always the same as color, but this is safer
-    LEADER_SKILL_COLOR_CHOICES = COLOR_CHOICES
+    # Currently leader skill color is always the same as card color
     LEADER_SKILL_COLOR_WITHOUT_I_CHOICES = True
-    i_leader_skill_color = models.PositiveIntegerField('{color}', choices=LEADER_SKILL_COLOR_CHOICES, null=True)
+    i_leader_skill_color = property(i_color)
 
-    LEADER_SKILL_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in STATS.items()]
-    LEADER_SKILL_STAT_WITHOUT_I_CHOICES = True
-    i_leader_skill_stat = models.PositiveIntegerField('{stat}', choices=LEADER_SKILL_STAT_CHOICES, null=True)
+    STATISTICS = OrderedDict([
+        ('dance', {
+            'translation': _('Dance'),
+            'english': u'Dance',
+            'japanese_translation': u'DANCE'
+        }),
+        ('vocal', {
+            'translation': _('Vocal'),
+            'english': u'Vocal',
+            'japanese_translation': u'VOCAL'
+        }),
+        ('charm', {
+            'translation': _('Charm'),
+            'english': u'Charm',
+            'japanese_translation': u'ACT'
+        })
+    ])
 
-    leader_skill_percentage = models.PositiveIntegerField('{percentage}', null=True)
+    LEADER_SKILL_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in STATISTICS.items()]
+    i_leader_skill_stat = models.PositiveIntegerField('{t_leader_skill_stat}', choices=i_choices(LEADER_SKILL_STAT_CHOICES), null=True)
 
     @property
-    def leader_skill_variables(self):
-        return {
-            key: getattr(self, u'leader_skill_{}'.format(key))
-            for key in self.LEADER_SKILL_INFO['variables']
-        }
+    def t_leader_skill_stat(self):
+        if get_language() == 'ja': return getInfoFromChoices('leader_skill_stat', STATISTICS, 'japanese_translation')
+        return getInfoFromChoices('leader_skill_stat', STATISTICS, 'translation')
+
+    leader_skill_percentage = models.PositiveIntegerField('{leader_skill_percentage}', null=True)
 
     @property
     def leader_skill(self):
-        if self.leader_skill_color is None: return None
-        return self.LEADER_SKILL_INFO['template'].format(**self.leader_skill_variables)
+        if self.leader_skill_stat is None: return None
+        return self.LEADER_SKILL_INFO['template'].format(**{
+            k: getattr(self, 't_leader_skill_{}'.format(k), '')
+            for k in templateVariables(self.LEADER_SKILL_INFO['template'])
+        })
 
     @property
     def japanese_leader_skill(self):
         if self.leader_skill_color is None: return None
-        return self.LEADER_SKILL_INFO['japanese_template'].format(**self.leader_skill_variables)
+        return self.LEADER_SKILL_INFO['japanese_template'].format(**{
+            k: getattr(self, 't_leader_skill_{}'.format(k), '')
+            for k in templateVariables(self.LEADER_SKILL_INFO['template'])
+        })
 
 
     # Skills
     SKILL_TYPES = OrderedDict([
-        (1, {
+        ('score_notes', {
             'translation': _(u'Score notes'),
             'english': 'Score notes',
             'japanese_translation': u'スコアノーツ',
             'icon': 'scoreup',
 
-            'variables': ['note_count'],
-            'template': _(u'Score Notes +{note_count}'),
-            'japanese_template': u'スコアノーツを{note_count}個追加'
+            'template': _(u'Score Notes +{skill_note_count}'),
+            'japanese_template': u'スコアノーツを{skill_note_count}個追加',
         }),
-        (2, {
+        ('perfect_score', {
             'translation': _(u'Perfect score up'),
             'english': 'Perfect score up',
             'japanese_translation': u'JUST PERFECTのスコア',
             'icon': 'scoreup',
 
-            'variables': ['percentage'],
-            'template': _(u'Perfect Score +{percentage}%'),
-            'japanese_template': u'JUST PERFECTのスコア{percentage}%上昇'
+            'template': _(u'Perfect Score +{skill_percentage}%'),
+            'japanese_template': u'JUST PERFECTのスコア{skill_percentage}%上昇',
         }),
-        (3, {
+        ('cutin', {
             'translation': _(u'Cut-in'),
             'english': 'Cut-in',
             'japanese_translation': u'カットイン',
             'icon': 'scoreup',
 
-            'variables': ['percentage'],
-            'template': _(u'Cut-in Bonus Score +{percentage}%'),
-            'japanese_template': u'カットインボーナスのスコア{percentage}%上昇'
+            'template': _(u'Cut-in Bonus Score +{skill_percentage}%'),
+            'japanese_template': u'カットインボーナスのスコア{skill_percentage}%上昇',
         }),
-        (4, {
+        ('good_lock', {
             'translation': _(u'Good lock'),
             'english': 'Good lock',
             # need someone to check this, feels too long
             'japanese_translation': u'BADをGREATに',
             'icon': 'perfectlock',
 
-            'variables': ['note_count'],
-            'template': _(u'Bad > Good ({note_count} Times)'),
-            'japanese_template': _(u'BADを{note_count}回GREATにする')
+            'template': _(u'Bad > Good ({skill_note_count} Times)'),
+            'japanese_template': u'BADを{skill_note_count}回GREATにする',
         }),
-        (5, {
+        ('great_lock', {
             'translation': _(u'Great lock'),
             'english': 'Great lock',
             # also seems long, need to check which comma to use
             'japanese_translation': u'BAD,GREATをPERFECTに',
             'icon': 'perfectlock',
 
-            'variables': ['note_count'],
-            'template': _(u'Bad/Good > Great ({note_count} Times)'),
-            'japanese_template': u'BAD,GREATを{note_count}回PERFECTにする'
+            'template': _(u'Bad/Good > Great ({skill_note_count} Times)'),
+            'japanese_template': u'BAD,GREATを{skill_note_count}回PERFECTにする',
         }),
-        (6, {
+        ('healer', {
             'translation': _(u'Healer'),
             'english': 'Healer',
             'japanese_translation': u'ライフ回復ノーツ',
             'icon': 'healer',
 
-            'variables': ['note_count'],
-            'template': _(u'Stamina Recovery Notes +{note_count}'),
-            'japanese_template': u'ライフ回復ノーツを{note_count}個追加'
-        })
+            'template': _(u'Stamina Recovery Notes +{skill_note_count}'),
+            'japanese_template': u'ライフ回復ノーツを{skill_note_count}個追加',
+        }),
     ])
 
-    ALL_VARIABLES = { item: True for sublist in [ _info['variables'] for _info in SKILL_TYPES.values() ] for item in sublist }.keys()
+    SKILL_VARIABLES = ['skill_note_count', 'skill_percentage']
 
-    SKILL_TYPE_WITHOUT_I_CHOICES = True
     SKILL_TYPE_CHOICES = [(_name, _info['translation']) for _name, _info in SKILL_TYPES.items()]
 
-    i_skill_type = models.PositiveIntegerField(_('Skill'), choices=SKILL_TYPE_CHOICES, null=True, db_index=True)
+    i_skill_type = models.PositiveIntegerField(_('Skill'), choices=i_choices(SKILL_TYPE_CHOICES), null=True, db_index=True)
     japanese_skill_type = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'japanese_translation'))
     skill_icon = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'icon'))
-
-    @property
-    def skill_template(self):
-        return self.SKILL_TYPES[self.skill_type]['template']
-
-    @property
-    def japanese_skill_template(self):
-        return self.SKILL_TYPES[self.skill_type]['japanese_template']
-
-    @property
-    def skill_variables(self):
-        return {
-            key: getattr(self, u'skill_{}'.format(key))
-            for key in self.SKILL_TYPES[self.skill_type]['variables']
-        }
+    skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'template'))
+    japanese_skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'japanese_template'))
 
     @property
     def skill(self):
         if self.i_skill_type is None: return None
-        return self.skill_template.format(**self.skill_variables)
+        return self.skill_template.format(**{
+            k: getattr(self, k, '')
+            for k in templateVariables(self.skill_template)
+        })
 
     @property
     def japanese_skill(self):
         if self.i_skill_type is None: return None
-        return self.japanese_skill_template.format(**self.skill_variables)
+        return self.japanese_skill_template.format(**{
+            k: getattr(self, k, '')
+            for k in templateVariables(self.japanese_skill_template)
+        })
 
-    skill_note_count = models.PositiveIntegerField('{note_count}', null=True)
+    skill_note_count = models.PositiveIntegerField('{skill_note_count}', null=True)
     # should percentage be split into different variales for perfect score and cutin?
-    skill_percentage = models.FloatField('{percentage}', null=True)
+    skill_percentage = models.FloatField('{skill_percentage}', null=True)
 
     # Subskills
     SUB_SKILL_TYPES = OrderedDict([
-        (1, {
+        ('full_combo', {
             'translation': _(u'Full combo'),
             'english': 'Full combo',
             'japanese_translation': u'フルコンボ',
 
-            'variables': ['amount'],
-            'template': _(u'+{amount} score when clearing a song with a Full Combo'),
-            'japanese_template': u'フルコンボクリア時+{amount}スコア'
+            'template': _(u'+{sub_skill_amount} score when clearing a song with a Full Combo'),
+            'japanese_template': u'フルコンボクリア時+{sub_skill_amount}スコア',
         }),
-        (2, {
+        ('stamina', {
             'translation': _(u'Stamina based'),
             'english': 'Stamina based',
             # unsure about this one too
             'japanese_translation': u'LIFEでクリア時',
 
-            'variables': ['percentage', 'amount'],
-            'template': _(u'+{amount} score when clearing a song with {percentage}% Stamina'),
-            'japanese_template': u'LIFE{percentage}%以上でクリア時+{amount}スコア'
-        })
+            'template': _(u'+{sub_skill_amount} score when clearing a song with {sub_skill_percentage}% Stamina'),
+            'japanese_template': u'LIFE{sub_skill_percentage}%以上でクリア時+{sub_skill_amount}スコア',
+        }),
     ])
 
-    ALL_SUB_SKILL_VARIABLES = { item: True for sublist in [ _info['variables'] for _info in SUB_SKILL_TYPES.values()] for item in sublist }.keys()
+    SUB_SKILL_VARIABLES = ['sub_skill_percentage', 'sub_skill_amount']
 
     SUB_SKILL_TYPE_CHOICES = [(_name, _info['translation']) for _name, _info in SUB_SKILL_TYPES.items()]
-    SUB_SKILL_TYPE_WITHOUT_I_CHOICES = True
-    i_sub_skill_type = models.PositiveIntegerField(_('Sub Skill'), choices=SUB_SKILL_TYPE_CHOICES, null=True)
+    i_sub_skill_type = models.PositiveIntegerField(_('Sub Skill'), choices=i_choices(SUB_SKILL_TYPE_CHOICES), null=True)
     japanese_sub_skill_type = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'japanese_translation'))
 
-    @property
-    def sub_skill_template(self):
-        return self.SUB_SKILL_TYPES[self.sub_skill_type]['template']
-
-    @property
-    def japanese_sub_skill_template(self):
-        return self.SUB_SKILL_TYPES[self.sub_skill_type]['japanese_template']
-
-    @property
-    def sub_skill_variables(self):
-        return {
-            key: getattr(self, u'sub_skill_{}'.format(key))
-            for key in self.SUB_SKILL_TYPES[self.sub_skill_type]['variables']
-        }
+    sub_skill_template = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'template'))
+    japanese_sub_skill_template = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'japanese_template'))
 
     @property
     def sub_skill(self):
         if self.i_sub_skill_type is None: return None
-        return self.sub_skill_template.format(**self.sub_skill_variables)
+        return self.sub_skill_template.format({
+            k: getattr(self, k, '')
+            for k in templateVariables(self.sub_skill_template)
+        })
 
     @property
     def japanese_sub_skill(self):
         if self.i_sub_skill_type is None: return None
-        return self.japanese_sub_skill_template.format(**self.sub_skill_variables)
+        return self.japanese_sub_skill_template.format({
+            k: getattr(self, k, '')
+            for k in templateVariables(self.japanese_sub_skill_template)
+        })
 
-    sub_skill_amount = models.PositiveIntegerField('{amount}', null=True)
-    sub_skill_percentage = models.FloatField('{percentage}', null=True)
+    sub_skill_amount = models.PositiveIntegerField('{sub_skill_amount}', null=True)
+    sub_skill_percentage = models.FloatField('{sub_skill_percentage}', null=True)
 
     # Cache idol
 
@@ -500,10 +465,8 @@ class Photo(MagiModel):
     def __unicode__(self):
         if self.id:
             return u'{rarity} {idol_name} - {name}'.format(
-                rarity = self.rarity,
-                idol_name = self.cached_idol.t_name if self.cached_idol else '',
-                name=(self.japanese_name
-                    if (get_language() == 'ja' and self.japanese_name) or not self.name
-                    else self.name or ''),
+                rarity=self.rarity,
+                idol_name=self.cached_idol.t_name if self.cached_idol else '',
+                name=self.t_name,
             )
         return u''
