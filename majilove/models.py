@@ -249,7 +249,7 @@ class Photo(MagiModel):
 
     # Currently leader skill color is always the same as card color
     LEADER_SKILL_COLOR_WITHOUT_I_CHOICES = True
-    i_leader_skill_color = property(i_color)
+    i_leader_skill_color = property(lambda _a: _a.i_color)
 
     STATISTICS = OrderedDict([
         ('dance', {
@@ -274,8 +274,8 @@ class Photo(MagiModel):
 
     @property
     def t_leader_skill_stat(self):
-        if get_language() == 'ja': return getInfoFromChoices('leader_skill_stat', STATISTICS, 'japanese_translation')
-        return getInfoFromChoices('leader_skill_stat', STATISTICS, 'translation')
+        if get_language() == 'ja': return STATISTICS[self.leader_skill_stat]['japanese_translation']
+        return STATISTICS[self.leader_skill_stat]['translation']
 
     leader_skill_percentage = models.PositiveIntegerField('{leader_skill_percentage}', null=True)
 
@@ -294,7 +294,6 @@ class Photo(MagiModel):
             k: getattr(self, 't_leader_skill_{}'.format(k), '')
             for k in templateVariables(self.LEADER_SKILL_INFO['template'])
         })
-
 
     # Skills
     SKILL_TYPES = OrderedDict([
