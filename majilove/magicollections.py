@@ -33,12 +33,9 @@ class IdolCollection(MagiCollection):
     queryset = models.Idol.objects.all()
     title = _('Idol')
     plural_title = _('Idols')
-    # these fields are all for after views are added
-    #navbar_title = _('Characters')
-    # want the following as 'microphone' https://www.flaticon.com/free-icon/karaoke-microphone-icon_69364
-    #icon = 'microphone'
-    #navbar_link_list = 'utapri'
-    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
+    navbar_title = _('Idols')
+    image = 'mic'
+    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby', 'astrological_sign')
 
     form_class = forms.IdolForm
 
