@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
+from math import ceil
 from django.utils.translation import ugettext_lazy as _, string_concat, get_language
 from django.db import models
 from django.conf import settings as django_settings
 from magi.models import User, uploadItem
 from magi.item_model import MagiModel, i_choices, getInfoFromChoices
-from magi.abstract_models import BaseAccount
+from magi.abstract_models import AccountAsOwnerModel, BaseAccount
 from magi.utils import templateVariables
 
 
@@ -157,34 +158,33 @@ class Photo(MagiModel):
 
     # Photo statistics
 
-    #triplets_in_moments is number of sets of +30 dance/vocal/charm sqaures before 100%
     RARITIES = OrderedDict([
         ('N', {
             'translation': 'N',
             'special_shot_percentage': None,
             'outfit_unlock_percentage': 0,
-            'triplets_in_moments' : 1,
+            'squares_in_moments' : 1,
             'max_levels': 20,
             }),
         ('R', {
             'translation': 'R',
             'special_shot_percentage': 100,
             'outfit_unlock_percentage': 50,
-            'triplets_in_moments' : 4,
+            'squares_in_moments' : 4,
             'max_levels': (30, 50),
             }),
         ('SR', {
             'translation': 'SR',
             'special_shot_percentage': 83,
             'outfit_unlock_percentage': 33,
-            'triplets_in_moments' : 6,
+            'squares_in_moments' : 6,
             'max_levels': (40, 60),
             }),
         ('UR', {
             'translation': 'UR',
             'special_shot_percentage': 87,
             'outfit_unlock_percentage': 25,
-            'triplets_in_moments': 8,
+            'squares_in_moments': 8,
             'max_levels': (50, 70),
         }),
     ])
@@ -193,7 +193,7 @@ class Photo(MagiModel):
     i_rarity = models.PositiveIntegerField(_('Rarity'), choices=i_choices(RARITY_CHOICES), db_index=True)
     rarity_max_levels = property(getInfoFromChoices('rarity', RARITIES, 'max_levels'))
     rarity_special_shot_perecentage = property(getInfoFromChoices('rarity', RARITIES, 'special_shot_percentage'))
-    rarity_triplets_in_moments = property(getInfoFromChoices('rarity', RARITIES, 'triplets_in_moments'))
+    rarity_squares_in_moments = property(getInfoFromChoices('rarity', RARITIES, 'squares_in_moments'))
 
     COMBINABLE_RARITIES = ['R', 'SR', 'UR']
 
@@ -228,6 +228,26 @@ class Photo(MagiModel):
     charm_min = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Minimum'), ')'), default=0)
     charm_single_copy_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Single Copy Maximum'), ')'), default=0)
     charm_max_copy_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Maxed Copy Maximum'), ')'), default=0)
+
+    @property
+    def dance_single_copy_increment(self):
+        return (self.dance_single_copy_max - self.dance_min)/(self.single_max_level - 1)
+    @property
+    def dance_combined_increment(self):
+        return (self.dance_max_copy_max - self.dance_single_copy_max)/(self.max_max_level - self.single_max_level)
+    @property
+    def vocal_single_copy_increment(self):
+        return (self.vocal_single_copy_max - self.vocal_min)/(self.single_max_level - 1)
+    @property
+    def vocal_combined_increment(self):
+        return (self.vocal_max_copy_max - self.vocal_single_copy_max)/(self.max_max_level - self.single_max_level)
+    @property
+    def charm_single_copy_increment(self):
+        return (self.charm_single_copy_max - self.charm_min)/(self.single_max_level - 1)
+    @property
+    def charm_combined_increment(self):
+        return (self.charm_max_copy_max - self.charm_single_copy_max)/(self.max_max_level - self.single_max_level)
+
 
     @property
     def overall_min(self):
@@ -302,6 +322,7 @@ class Photo(MagiModel):
             'english': 'Score notes',
             'japanese_translation': u'スコアノーツ',
             'icon': 'scoreup',
+            'increment': 1
 
             'template': _(u'Score Notes +{skill_note_count}'),
             'japanese_template': u'スコアノーツを{skill_note_count}個追加',
@@ -311,6 +332,7 @@ class Photo(MagiModel):
             'english': 'Perfect score up',
             'japanese_translation': u'JUST PERFECTのスコア',
             'icon': 'scoreup',
+            'increment': 0.3
 
             'template': _(u'Perfect Score +{skill_percentage}%'),
             'japanese_template': u'JUST PERFECTのスコア{skill_percentage}%上昇',
@@ -320,6 +342,7 @@ class Photo(MagiModel):
             'english': 'Cut-in',
             'japanese_translation': u'カットイン',
             'icon': 'scoreup',
+            'increment': 10
 
             'template': _(u'Cut-in Bonus Score +{skill_percentage}%'),
             'japanese_template': u'カットインボーナスのスコア{skill_percentage}%上昇',
@@ -330,6 +353,7 @@ class Photo(MagiModel):
             # need someone to check this, feels too long
             'japanese_translation': u'BADをGREATに',
             'icon': 'perfectlock',
+            'increment': 1
 
             'template': _(u'Bad > Good ({skill_note_count} Times)'),
             'japanese_template': u'BADを{skill_note_count}回GREATにする',
@@ -340,6 +364,7 @@ class Photo(MagiModel):
             # also seems long, need to check which comma to use
             'japanese_translation': u'BAD,GREATをPERFECTに',
             'icon': 'perfectlock',
+            'increment': 1
 
             'template': _(u'Bad/Good > Great ({skill_note_count} Times)'),
             'japanese_template': u'BAD,GREATを{skill_note_count}回PERFECTにする',
@@ -349,6 +374,7 @@ class Photo(MagiModel):
             'english': 'Healer',
             'japanese_translation': u'ライフ回復ノーツ',
             'icon': 'healer',
+            'increment': 1
 
             'template': _(u'Stamina Recovery Notes +{skill_note_count}'),
             'japanese_template': u'ライフ回復ノーツを{skill_note_count}個追加',
@@ -364,6 +390,7 @@ class Photo(MagiModel):
     skill_icon = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'icon'))
     skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'template'))
     japanese_skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'japanese_template'))
+    skill_increment = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'increment'))
 
     @property
     def skill(self):
@@ -469,3 +496,113 @@ class Photo(MagiModel):
                 name=self.t_name,
             )
         return u''
+
+############################################################
+# Collectible Photos
+
+class CollectiblePhoto(AccountAsOwnerModel):
+    collection_name = 'collectiblephoto'
+
+    account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='photoscollectors')
+    photo = models.ForeignKey(Photo, verbose_name=_('Photo'), related_name='collectedphotos')
+    level = models.PositiveIntegerField(_('Level'), default=1)
+    leader_bonus = models.PositiveIntegerField(_('Leader skill percentage'), null=True)
+    skill_level = models.PositiveIntegerField(_('Skill level'), default=1)
+    @property
+    def skill(self):
+        return self.photo.skill_template.format({
+            k: getattr(self.photo, k, '') + (self.skill_level - 1) * self.photo.skill_increment
+            for k in templateVariables(self.photo.skill_template)
+            })
+    sub_skill_level = models.PositiveIntegerField(_('Sub skill level'), null=True)
+    # TODO: don't have sub skill increment currently
+    rank = models.PositiveIntegerField(_('Rank'), default=1)
+
+    # TODO: moment based things are the same across, do I need an intermediate model for moment things?
+
+    # percentage displayed on moments page for the card
+    moments_unlocked = models.PositiveIntegerField(_('Percent of moments unlocked'), default = 0)
+    # integer number of squares
+    bonus_moment_squares_unlocked = models.PositiveIntegerField(_('Number of moment squares unlocked past 100%'), default = 0)
+    @property
+    def special_shot_unlocked(self):
+        return self.moments_unlocked >= self.photo.special_shot_percentage
+
+    @property
+    def final_leader_skill_percentage(self):
+        if self.leader_bonus: return self.leader_bonus
+        if self.photo.rarity is 'UR' and self.bonus_moment_squares_unlocked is 16: return 70
+        _extra_squares = self.bonus_moment_squares_unlocked - 1
+        if self.photo.rarity is 'UR': _extra_squares = (self.bonus_moment_squares_unlocked // 4) - 1
+        if _extra_squares < 0: _extra_squares = 0
+        return self.photo.leader_skill_percentage + (_extra_squares * 3)
+
+    @property
+    def leader_skill(self):
+        _leader_skill_variables = {
+            k: getattr(self.photo, 't_leader_skill_{}'.format(k), '')
+            for k in templateVariables(Photo.LEADER_SKILL_INFO['template'])
+        }
+        _leader_skill_variables['']
+        return Photo.LEADER_SKILL_INFO['template'].format(**{
+            k: getattr(self.photo, 't_leader_skill_{}'.format(k), '')
+            for k in templateVariables(Photo.LEADER_SKILL_INFO['template'])
+        }.put())
+
+    custom_dance_stat = models.PositiveIntegerField(_('Dance'), null=True)
+    custom_vocal_stat = models.PositiveIntegerField(_('Vocal'), null=True)
+    custom_charm_stat = models.PositiveIntegerField(_('Charm'), null=True)
+
+    # pre moment stats
+    @property
+    def level_dance_stat(self):
+        if self.level == 1: return self.photo.dance_min
+        if self.level == self.photo.single_max_level: return self.photo.dance_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.dance_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.dance_min + ((self.level - 1) * self.photo.dance_single_copy_increment)
+        return self.photo.dance_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.dance_combined_increment)
+    @property
+    def level_vocal_stat(self):
+        if self.level == 1: return self.photo.vocal_min
+        if self.level == self.photo.single_max_level: return self.photo.vocal_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.vocal_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.vocal_min + ((self.level - 1) * self.photo.vocal_single_copy_increment)
+        return self.photo.vocal_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.vocal_combined_increment)
+    @property
+    def level_charm_stat(self):
+        if self.level == 1: return self.photo.charm_min
+        if self.level == self.photo.single_max_level: return self.photo.charm_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.charm_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.charm_min + ((self.level - 1) * self.photo.charm_single_copy_increment)
+        return self.photo.charm_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.charm_combined_increment)
+
+    @property
+    def moment_squares_unlocked(self):
+        return ceil((self.moments_unlocked / 100) * self.photo.rarity_squares_in_moments) + (self.bonus_moment_squares_unlocked if self.photo.rarity is 'UR' else 0)
+
+    # squares go +30 dance->vocal->charm->big square
+    @property
+    def moment_dance_bonus(self):
+        return ceil(self.moment_squares_unlocked / 4) * 30
+    @property
+    def moment_vocal_bonus(self):
+        return ((self.moment_squares_unlocked // 4) + (1 if (self.moment_squares_unlocked % 4) >= 2 else 0)) * 30
+    @property
+    def moment_charm_bonus(self):
+        return ((self.moment_squares_unlocked // 4) + (1 if (self.moment_squares_unlocked % 4) >= 3 else 0)) * 30
+
+    @property
+    def display_dance(self):
+        if self.custom_dance_stat: self.custom_dance_stat
+        return self.level_dance_stat + self.moment_dance_bonus
+    @property
+    def display_vocal(self):
+        if self.custom_vocal_stat: self.custom_vocal_stat
+        return self.level_vocal_stat + self.moment_vocal_bonus
+    @property
+    def display_charm(self):
+        if self.custom_charm_stat: self.custom_charm_stat
+        return self.level_charm_stat + self.moment_charm_bonus
