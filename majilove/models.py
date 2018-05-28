@@ -271,19 +271,13 @@ class Photo(MagiModel):
 
     LEADER_SKILL_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in STATISTICS.items()]
     i_leader_skill_stat = models.PositiveIntegerField('{t_leader_skill_stat}', choices=i_choices(LEADER_SKILL_STAT_CHOICES), null=True)
-
-    @property
-    def t_leader_skill_stat(self):
-        if get_language() == 'ja': return STATISTICS[self.leader_skill_stat]['japanese_translation']
-        return STATISTICS[self.leader_skill_stat]['translation']
-
     leader_skill_percentage = models.PositiveIntegerField('{leader_skill_percentage}', null=True)
 
     @property
     def leader_skill(self):
         if self.leader_skill_stat is None: return None
         return self.LEADER_SKILL_INFO['template'].format(**{
-            k: getattr(self, 't_leader_skill_{}'.format(k), '')
+            k: getattr(self, k, '')
             for k in templateVariables(self.LEADER_SKILL_INFO['template'])
         })
 
@@ -291,7 +285,7 @@ class Photo(MagiModel):
     def japanese_leader_skill(self):
         if self.leader_skill_color is None: return None
         return self.LEADER_SKILL_INFO['japanese_template'].format(**{
-            k: getattr(self, 't_leader_skill_{}'.format(k), '')
+            k: getattr(self, k, '')
             for k in templateVariables(self.LEADER_SKILL_INFO['template'])
         })
 
