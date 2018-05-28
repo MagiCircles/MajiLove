@@ -103,9 +103,9 @@ class Idol(MagiModel):
     HOBBYS_CHOICES = ALL_ALT_LANGUAGES
     d_hobbys = models.TextField(_('Hobby'), null=True)
 
-    image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
+    image = models.ImageField(_('Image'), upload_to=uploadItem('idol'), null=True)
 
-    small_image = models.ImageField(_('Image'), upload_to=uploadItem('idol/small'))
+    small_image = models.ImageField('Small image (for map)', upload_to=uploadItem('idol/small'))
 
     def __unicode__(self):
         return unicode(self.t_name)
