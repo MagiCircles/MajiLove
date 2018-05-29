@@ -117,7 +117,7 @@ class Photo(MagiModel):
     collection_name = 'photo'
 
     owner = models.ForeignKey(User, related_name='added_photos')
-    id = models.PositiveIntegerField(_('ID'), unique=True, primary_key=True, db_index=True)
+    id = models.PositiveIntegerField(_('Album ID'), unique=True, primary_key=True, db_index=True)
 
     name = models.CharField(_('Photo Name'), max_length=100)
     NAMES_CHOICES = ALL_ALT_LANGUAGES
@@ -148,7 +148,7 @@ class Photo(MagiModel):
 
     message_text = models.TextField(string_concat(_('Message Text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
     message_translation = models.TextField(_('Message translation'), max_length=500, null=True)
-    MESSAGE_TRANSLATIONs_CHOICES = ALL_ALT_LANGUAGES
+    MESSAGE_TRANSLATIONS_CHOICES = ALL_ALT_LANGUAGES
     d_message_translations = models.TextField(_('Message translation'), null=True)
     @property
     def t_message_translation(self):
@@ -315,8 +315,8 @@ class Photo(MagiModel):
             'japanese_translation': u'カットイン',
             'icon': 'scoreup',
 
-            'template': _(u'Cut-in Bonus Score +{skill_percentage}%'),
-            'japanese_template': u'カットインボーナスのスコア{skill_percentage}%上昇',
+            'template': _(u'Cut-in Bonus Score +{skill_percentage:.0f}%'),
+            'japanese_template': u'カットインボーナスのスコア{skill_percentage:.0f}%上昇',
         }),
         ('good_lock', {
             'translation': _(u'Good lock'),
@@ -386,7 +386,7 @@ class Photo(MagiModel):
             'english': 'Full combo',
             'japanese_translation': u'フルコンボ',
 
-            'template': _(u'+{sub_skill_amount} score when clearing a song with a Full Combo'),
+            'template': _('+{sub_skill_amount} score when clearing a song with a Full Combo'),
             'japanese_template': u'フルコンボクリア時+{sub_skill_amount}スコア',
         }),
         ('stamina', {
@@ -395,7 +395,7 @@ class Photo(MagiModel):
             # unsure about this one too
             'japanese_translation': u'LIFEでクリア時',
 
-            'template': _(u'+{sub_skill_amount} score when clearing a song with {sub_skill_percentage}% Stamina'),
+            'template': _('+{sub_skill_amount} score when clearing a song with {sub_skill_percentage}% Stamina'),
             'japanese_template': u'LIFE{sub_skill_percentage}%以上でクリア時+{sub_skill_amount}スコア',
         }),
     ])
@@ -412,15 +412,15 @@ class Photo(MagiModel):
     @property
     def sub_skill(self):
         if self.i_sub_skill_type is None: return None
-        return self.sub_skill_template.format({
-            k: getattr(self, k, '')
+        return self.sub_skill_template.format(**{
+            k: getattr(self, k)
             for k in templateVariables(self.sub_skill_template)
         })
 
     @property
     def japanese_sub_skill(self):
         if self.i_sub_skill_type is None: return None
-        return self.japanese_sub_skill_template.format({
+        return self.japanese_sub_skill_template.format(**{
             k: getattr(self, k, '')
             for k in templateVariables(self.japanese_sub_skill_template)
         })
@@ -439,7 +439,7 @@ class Photo(MagiModel):
         d['name'] = d['names'].get('en', None)
         d['t_name'] = d['unicode'] = d['names'].get(get_language(), d['name'])
 
-    def to_cache_member(self):
+    def to_cache_idol(self):
         if not self.idol:
             return {
                 'id': None,
