@@ -5,7 +5,7 @@ from django.db import models
 from django.conf import settings as django_settings
 from magi.models import User, uploadItem
 from magi.item_model import MagiModel, i_choices
-from magi.abstract_models import BaseAccount
+from magi.abstract_models import BaseAccount, AccountAsOwnerModel
 
 
 ############################################################
@@ -185,3 +185,49 @@ class Song(MagiModel):
 
     def __unicode__(self):
         return unicode(self.t_name)
+
+
+############################################################
+# Collectible Songs
+
+class PlayedSong(AccountAsOwnerModel):
+    collection_name = 'playedsong'
+
+    account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='playedsong')
+    song = models.ForeignKey(Song, verbose_name=_('Song'), related_name='playedby')
+
+    DIFFICULTY_CHOICES = (
+        ('easy', _('Easy')),
+        ('normal', _('Normal')),
+        ('hard', _('Hard')),
+        ('pro', _('Pro')),
+    )
+    i_difficulty = models.PositiveIntegerField(_('Difficulty'), choices=i_choices(DIFFICULTY_CHOICES))
+    score = models.PositiveIntegerField(_('Score'), null=True)
+    full_combo = models.NullBooleanField(_('Full combo'))
+    ultimate_combo = models.NullBooleanField(_('Ultimate combo'))
+
+    NOTE_TYPES = (
+        ('miss', _('Miss')),
+        ('bad', _('Bad')),
+        ('Good', _('Good')),
+        ('Great', _('Great')),
+        ('Perfect', _('Perfect')),
+    )
+
+    expected_miss = models.PositiveIntegerField(_('Miss'), default=0)
+    expected_bad = models.PositiveIntegerField(_('Bad'), default=0)
+    expected_good = models.PositiveIntegerField(_('Good'), default=0)
+    expected_great = models.PositiveIntegerField(_('Great'), default=0)
+    @property
+    def expected_perfect(self):
+        return getattr(self.song, '{}_notes'.format(self.difficulty)) - self.expected_miss - self.expected_bad - self.expected_good - self.expected_great
+
+    @property
+    def image(self):
+        return self.song.image
+
+    def __unicode__(self):
+        if self.id:
+            return unicode(self.song)
+        return super(PlayedSong, self).__unicode__()
