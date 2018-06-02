@@ -2,6 +2,7 @@
 from collections import OrderedDict
 from math import ceil
 from django.utils.translation import ugettext_lazy as _, string_concat, get_language
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.conf import settings as django_settings
 from magi.models import User, uploadItem
@@ -682,3 +683,125 @@ class CollectiblePhoto(AccountAsOwnerModel):
         if self.id:
             return unicode(self.photo)
         return super(CollectiblePhoto, self).__unicode__()
+
+############################################################
+# Songs
+
+class Song(MagiModel):
+    collection_name = 'song'
+    owner = models.ForeignKey(User, related_name='added_songs')
+
+    DIFFICULTY_VALIDATORS = [
+        MinValueValidator(1),
+        MaxValueValidator(13),
+    ]
+
+    name = models.CharField(string_concat(_('Title'), ' (', _('Translation'), ')'), max_length=100, null=True)
+    japanese_name = models.CharField(_('Title'), max_length=100, null=True)
+    NAMES_CHOICES = ALL_ALT_LANGUAGES
+    d_names = models.TextField(_('Title'), null=True)
+    @property
+    def t_name(self):
+        if get_language() == 'ja': return self.japanese_name
+        return self.names.get(get_language(), self.name)
+
+    image = models.ImageField('Album cover', upload_to=uploadItem('song'), null=True)
+
+    composer = models.CharField(_('Composer'), max_length=100, null=True)
+    COMPOSERS_CHOICES = LANGUAGES_NEED_OWN_NAME
+    d_composers = models.TextField(_('Composer'), null=True)
+    lyricist = models.CharField(_('Lyricist'), max_length=100, null=True)
+    LYRICISTS_CHOICES = LANGUAGES_NEED_OWN_NAME
+    d_lyricists = models.TextField(_('Lyricist'), null=True)
+    arranger = models.CharField(_('Arranger'), max_length=100, null=True)
+    ARRANGERS_CHOICES = LANGUAGES_NEED_OWN_NAME
+    d_arrangers = models.TextField(_('Arranger'), null=True)
+
+    singers = models.ManyToManyField(Idol, related_name="sung_songs", verbose_name=_('Singers'))
+
+    # TODO: whichever of photo or song goes in second should take this from the other
+    COLORS= OrderedDict([
+        (1, { # yellow
+            'translation': _('Star'),
+            'english': u'Star'
+        }),
+        (2, { # red
+            'translation': _('Shine'),
+            'english': u'Shine'
+        }),
+        (3, { # blue
+            'translation': _('Dream'),
+            'english': u'Dream'
+        })
+    ])
+
+    COLOR_CHOICES = [(_name, _info['translation']) for _name, _info in COLORS.items()]
+    COLOR_WITHOUT_I_CHOICES=True
+    i_color = models.PositiveIntegerField(_('Color'), choices=i_choices(COLOR_CHOICES))
+
+    easy_notes = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Notes')), null=True)
+    easy_difficulty = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    normal_notes = models.PositiveIntegerField(string_concat(_('Normal'), ' - ', _('Notes')), null=True)
+    normal_difficulty = models.PositiveIntegerField(string_concat(_('Normal'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    hard_notes = models.PositiveIntegerField(string_concat(_('Hard'), ' - ', _('Notes')), null=True)
+    hard_difficulty = models.PositiveIntegerField(string_concat(_('Hard'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    pro_notes = models.PositiveIntegerField(string_concat(_('Pro'), ' - ', _('Notes')), null=True)
+    pro_difficulty = models.PositiveIntegerField(string_concat(_('Pro'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+
+    length = models.PositiveIntegerField(_('Length'), null=True)
+
+    # just going to have unlock method for regular permanent songs for now
+    unlock_chapter = models.CharField(_('Unlock Chapter'), max_length=100, null=True)
+    UNLOCK_CHAPTERS_CHOICES = ALL_ALT_LANGUAGES
+    d_unlock_chapters = models.TextField(_('Unlock Chapter'), null=True)
+
+    #TODO: other unlock methods
+
+    def __unicode__(self):
+        return unicode(self.t_name)
+
+
+############################################################
+# Collectible Songs
+
+class PlayedSong(AccountAsOwnerModel):
+    collection_name = 'playedsong'
+
+    account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='playedsong')
+    song = models.ForeignKey(Song, verbose_name=_('Song'), related_name='playedby')
+
+    DIFFICULTY_CHOICES = (
+        ('easy', _('Easy')),
+        ('normal', _('Normal')),
+        ('hard', _('Hard')),
+        ('pro', _('Pro')),
+    )
+    i_difficulty = models.PositiveIntegerField(_('Difficulty'), choices=i_choices(DIFFICULTY_CHOICES))
+    score = models.PositiveIntegerField(_('Score'), null=True)
+    full_combo = models.NullBooleanField(_('Full combo'))
+    ultimate_combo = models.NullBooleanField(_('Ultimate combo'))
+
+    NOTE_TYPES = (
+        ('miss', _('Miss')),
+        ('bad', _('Bad')),
+        ('Good', _('Good')),
+        ('Great', _('Great')),
+        ('Perfect', _('Perfect')),
+    )
+
+    expected_miss = models.PositiveIntegerField(_('Miss'), default=0)
+    expected_bad = models.PositiveIntegerField(_('Bad'), default=0)
+    expected_good = models.PositiveIntegerField(_('Good'), default=0)
+    expected_great = models.PositiveIntegerField(_('Great'), default=0)
+    @property
+    def expected_perfect(self):
+        return getattr(self.song, '{}_notes'.format(self.difficulty)) - self.expected_miss - self.expected_bad - self.expected_good - self.expected_great
+
+    @property
+    def image(self):
+        return self.song.image
+
+    def __unicode__(self):
+        if self.id:
+            return unicode(self.song)
+        return super(PlayedSong, self).__unicode__()
