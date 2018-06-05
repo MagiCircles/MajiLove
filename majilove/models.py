@@ -506,19 +506,31 @@ class CollectiblePhoto(AccountAsOwnerModel):
     leader_bonus = models.PositiveIntegerField(_('Leader skill percentage'), null=True)
     skill_level = models.PositiveIntegerField(_('Skill level'), default=1)
     @property
+    def skill_note_count(self):
+        if self.photo.skill_note_count is None: return None
+        return self.photo.skill_note_count + (skill_level - 1) * self.photo.skill_increment
+    @property
+    def skill_percentage(self):
+        if self.photo.skill_percentage is None: return None
+        return self.photo.skill_percentage + (skill_level - 1) * self.photo.skill_increment
+    @property
     def skill(self):
         return self.photo.skill_template.format({
-            k: getattr(self.photo, k) + (self.skill_level - 1) * self.photo.skill_increment
+            k: getattr(self, k)
             for k in templateVariables(self.photo.skill_template)
         })
 
     sub_skill_level = models.PositiveIntegerField(_('Sub skill level'), null=True)
     @property
+    def sub_skill_amount(self):
+        if sub_skill_level is None: return 0
+        return self.photo.sub_skill_amount + (sub_skill_level * self.photo.sub_skill_increment)
+    @property
     def sub_skill(self):
         _sub_skill_variables = {k: getattr(self.photo, k)
         for k in templateVariables(self.photo.sub_skill_template
         )}
-        _sub_skill_variables['sub_skill_amount'] = self.photo.sub_skill_amount + (sub_skill_level * self.photo.sub_skill_increment)
+        _sub_skill_variables['sub_skill_amount'] = self.sub_skill_amount
         return self.photo.sub_skill_template.format(**_sub_skill_variables)
 
     rank = models.PositiveIntegerField(_('Rank'), default=1)
@@ -770,13 +782,31 @@ class PlayedSong(AccountAsOwnerModel):
     account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='playedsong')
     song = models.ForeignKey(Song, verbose_name=_('Song'), related_name='playedby')
 
-    DIFFICULTY_CHOICES = (
-        ('easy', _('Easy')),
-        ('normal', _('Normal')),
-        ('hard', _('Hard')),
-        ('pro', _('Pro')),
-    )
+    DIFFICULTIES = OrderedDict([
+        ('easy', {
+            'translation' : _('Easy'),
+            'cut_in_freq' : 20,
+        }),
+        ('normal', {
+            'translation' : _('Normal'),
+            'cut_in_freq' : 30,
+        }),
+        ('hard', {
+            'translation' : _('Hard'),
+            'cut_in_freq' : 40,
+        }),
+        ('pro', {
+            'translation' : _('Pro'),
+            'cut_in_freq' : 50,
+        }),
+    ])
+
+    DIFFICULTY_CHOICES = [(_name, _info['translation']) for _name, _info in DIFFICULTIES.items()]
     i_difficulty = models.PositiveIntegerField(_('Difficulty'), choices=i_choices(DIFFICULTY_CHOICES))
+    cut_in_freq = property(getInfoFromChoices('difficulty', DIFFICULTIES, 'cut_in_freq'))
+    @property
+    def difficulty_note_count(self):
+        return getattr(self.song, '{}_notes'.format(self.difficulty))
     score = models.PositiveIntegerField(_('Score'), null=True)
     full_combo = models.NullBooleanField(_('Full combo'))
     ultimate_combo = models.NullBooleanField(_('Ultimate combo'))
@@ -795,7 +825,7 @@ class PlayedSong(AccountAsOwnerModel):
     expected_great = models.PositiveIntegerField(_('Great'), default=0)
     @property
     def expected_perfect(self):
-        return getattr(self.song, '{}_notes'.format(self.difficulty)) - self.expected_miss - self.expected_bad - self.expected_good - self.expected_great
+        return self.difficulty_note_count - self.expected_miss - self.expected_bad - self.expected_good - self.expected_great
 
     @property
     def image(self):
