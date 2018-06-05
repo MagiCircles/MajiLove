@@ -504,20 +504,32 @@ class CollectiblePhoto(AccountAsOwnerModel):
     level = models.PositiveIntegerField(_('Level'), default=1)
     leader_bonus = models.PositiveIntegerField(_('Leader skill percentage'), null=True)
     skill_level = models.PositiveIntegerField(_('Skill level'), default=1)
+
+    @property
+    def skill_percentage(self):
+        return self.photo.skill_percentage + (self.skill_level - 1) * self.photo.skill_increment
+    @property
+    def skill_note_count(self):
+        return self.photo.skill_note_count + (self.skill_level - 1) * self.photo.skill_increment
+
     @property
     def skill(self):
         return self.photo.skill_template.format({
-            k: getattr(self.photo, k) + (self.skill_level - 1) * self.photo.skill_increment
+            k: getattr(self, k)
             for k in templateVariables(self.photo.skill_template)
         })
 
     sub_skill_level = models.PositiveIntegerField(_('Sub skill level'), null=True)
     @property
+    def sub_skill_amount(self):
+        return self.photo.sub_skill_amount + (self.sub_skill_level - 1) * self.photo.sub_skill_increment
+
+    @property
     def sub_skill(self):
         _sub_skill_variables = {k: getattr(self.photo, k)
         for k in templateVariables(self.photo.sub_skill_template
         )}
-        _sub_skill_variables['sub_skill_amount'] = self.photo.sub_skill_amount + (sub_skill_level * self.photo.sub_skill_increment)
+        _sub_skill_variables['sub_skill_amount'] = self.sub_skill_amount
         return self.photo.sub_skill_template.format(**_sub_skill_variables)
 
     rank = models.PositiveIntegerField(_('Rank'), default=1)
