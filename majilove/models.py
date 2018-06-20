@@ -119,9 +119,9 @@ class Photo(MagiModel):
     owner = models.ForeignKey(User, related_name='added_photos')
     id = models.PositiveIntegerField(_('ID'), unique=True, primary_key=True, db_index=True)
 
-    name = models.CharField(_('Photo Name'), max_length=100)
+    name = models.CharField(_('Photo name'), max_length=100)
     NAMES_CHOICES = ALL_ALT_LANGUAGES
-    d_names = models.TextField(_('Photo Name'), null=True)
+    d_names = models.TextField(_('Photo name'), null=True)
 
     release_date = models.DateField(_('Release date'), null=True, db_index=True)
     idol = models.ForeignKey(Idol, verbose_name=_('Idol'), related_name='photos', db_index=True)
@@ -130,23 +130,23 @@ class Photo(MagiModel):
 
     # The square icon
     image = models.ImageField(_('Icon'), upload_to=uploadItem('photo'), null=True)
-    image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
+    image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
 
     # Full photo
-    full_photo = models.ImageField(_('Photo Image'), upload_to=uploadItem('photo/image'))
-    full_photo_special_shot = models.ImageField(string_concat(_('Photo Image'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/image/specialshot'), null=True)
+    full_photo = models.ImageField(_('Photo image'), upload_to=uploadItem('photo/image'))
+    full_photo_special_shot = models.ImageField(string_concat(_('Photo image'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/image/specialshot'), null=True)
 
     transparent = models.ImageField(_('Transparent'), upload_to=uploadItem('photo/transparent'), null=True)
-    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/transparent/specialshot'), null=True)
+    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/transparent/specialshot'), null=True)
 
     # Poster
     art = models.ImageField(_('Poster'), upload_to=uploadItem('photo/poster'), null=True)
-    art_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special Shot'), ')'), upload_to=uploadItem('photo/poster/specialshot'), null=True)
+    art_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/poster/specialshot'), null=True)
 
     message = models.ImageField(_('Message'), upload_to=uploadItem('photo/message'), null=True)
     autograph = models.ImageField(_('Autograph'), upload_to=uploadItem('photo/autograph'), null=True)
 
-    message_text = models.TextField(string_concat(_('Message Text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
+    message_text = models.TextField(string_concat(_('Message text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
     message_translation = models.TextField(_('Message translation'), max_length=500, null=True)
     MESSAGE_TRANSLATIONs_CHOICES = ALL_ALT_LANGUAGES
     d_message_translations = models.TextField(_('Message translation'), null=True)
@@ -403,7 +403,7 @@ class Photo(MagiModel):
     SUB_SKILL_VARIABLES = ['sub_skill_percentage', 'sub_skill_amount']
 
     SUB_SKILL_TYPE_CHOICES = [(_name, _info['translation']) for _name, _info in SUB_SKILL_TYPES.items()]
-    i_sub_skill_type = models.PositiveIntegerField(_('Sub Skill'), choices=i_choices(SUB_SKILL_TYPE_CHOICES), null=True)
+    i_sub_skill_type = models.PositiveIntegerField(_('Sub skill'), choices=i_choices(SUB_SKILL_TYPE_CHOICES), null=True)
     japanese_sub_skill_type = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'japanese_translation'))
 
     sub_skill_template = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'template'))
