@@ -31,7 +31,6 @@ class DonateCollection(_DonateCollection):
 ############################################################
 # Idol Collection
 
-<<<<<<< HEAD
 IDOL_ICONS = {
     'name': 'id',
     'japanese_name': 'id',
