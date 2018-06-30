@@ -31,6 +31,7 @@ class DonateCollection(_DonateCollection):
 ############################################################
 # Idol Collection
 
+<<<<<<< HEAD
 IDOL_ICONS = {
     'name': 'id',
     'japanese_name': 'id',
@@ -65,11 +66,10 @@ class IdolCollection(MagiCollection):
     queryset = models.Idol.objects.all()
     title = _('Idol')
     plural_title = _('Idols')
-    # these fields are all for after views are added
-    #navbar_title = _('Characters')
-    # want the following as 'microphone' https://www.flaticon.com/free-icon/karaoke-microphone-icon_69364
-    #icon = 'microphone'
+    # this field is for after views are added
     #navbar_link_list = 'utapri'
+    navbar_title = _('Idols')
+    image = 'mic'
     translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
 
     form_class = forms.IdolForm
