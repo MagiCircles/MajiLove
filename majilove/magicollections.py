@@ -1,6 +1,9 @@
 from django.utils.translation import ugettext_lazy as _
 from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection, BadgeCollection as _BadgeCollection, StaffConfigurationCollection as _StaffConfigurationCollection, DonateCollection as _DonateCollection
+<<<<<<< HEAD
 from magi.default_settings import RAW_CONTEXT
+=======
+>>>>>>> 78b9df3fe3ab30bbdc3c501aaefb899dc8744632
 from majilove import models, forms
 
 ############################################################
