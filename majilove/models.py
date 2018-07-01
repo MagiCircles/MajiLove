@@ -499,12 +499,8 @@ class Photo(MagiModel):
 
 class Song(MagiModel):
     collection_name = 'song'
-    owner = models.ForeignKey(User, related_name='added_songs')
 
-    DIFFICULTY_VALIDATORS = [
-        MinValueValidator(1),
-        MaxValueValidator(13),
-    ]
+    owner = models.ForeignKey(User, related_name='added_songs')
 
     name = models.CharField(string_concat(_('Title'), ' (', _('Translation'), ')'), max_length=100, null=True)
     japanese_name = models.CharField(_('Title'), max_length=100, null=True)
@@ -529,25 +525,13 @@ class Song(MagiModel):
 
     singers = models.ManyToManyField(Idol, related_name="sung_songs", verbose_name=_('Singers'))
 
-    # TODO: whichever of photo or song goes in second should take this from the other
-    COLORS= OrderedDict([
-        (1, { # yellow
-            'translation': _('Star'),
-            'english': u'Star'
-        }),
-        (2, { # red
-            'translation': _('Shine'),
-            'english': u'Shine'
-        }),
-        (3, { # blue
-            'translation': _('Dream'),
-            'english': u'Dream'
-        })
-    ])
-
-    COLOR_CHOICES = [(_name, _info['translation']) for _name, _info in COLORS.items()]
-    COLOR_WITHOUT_I_CHOICES=True
+    COLOR_CHOICES = Photo.COLOR_CHOICES
     i_color = models.PositiveIntegerField(_('Color'), choices=i_choices(COLOR_CHOICES))
+
+    DIFFICULTY_VALIDATORS = [
+        MinValueValidator(1),
+        MaxValueValidator(13),
+    ]
 
     easy_notes = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Notes')), null=True)
     easy_difficulty = models.PositiveIntegerField(string_concat(_('Easy'), ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
