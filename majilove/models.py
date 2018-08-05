@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
+from math import ceil
 from django.utils.translation import ugettext_lazy as _, string_concat, get_language
 from django.db import models
 from django.conf import settings as django_settings
 from magi.models import User, uploadItem
 from magi.item_model import MagiModel, i_choices, getInfoFromChoices
-from magi.abstract_models import BaseAccount
+from magi.abstract_models import AccountAsOwnerModel, BaseAccount
 from magi.utils import templateVariables
 
 
@@ -130,6 +131,7 @@ class Photo(MagiModel):
 
     # The square icon
     image = models.ImageField(_('Icon'), upload_to=uploadItem('photo'), null=True)
+
     image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
 
     # Full photo
@@ -148,7 +150,7 @@ class Photo(MagiModel):
 
     message_text = models.TextField(string_concat(_('Message text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
     message_translation = models.TextField(_('Message translation'), max_length=500, null=True)
-    MESSAGE_TRANSLATIONs_CHOICES = ALL_ALT_LANGUAGES
+    MESSAGE_TRANSLATIONS_CHOICES = ALL_ALT_LANGUAGES
     d_message_translations = models.TextField(_('Message translation'), null=True)
     @property
     def t_message_translation(self):
@@ -405,7 +407,6 @@ class Photo(MagiModel):
     skill_percentage = models.FloatField('{skill_percentage}', null=True)
     skill_percentage_int = property(lambda _a: int(_a.skill_percentage))
 
-
     # Subskills
     SUB_SKILL_TYPES = OrderedDict([
         ('full_combo', {
@@ -492,3 +493,205 @@ class Photo(MagiModel):
                 name=self.t_name,
             )
         return u''
+
+############################################################
+# Collectible Photos
+
+class CollectiblePhoto(AccountAsOwnerModel):
+    collection_name = 'collectiblephoto'
+
+    account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='photoscollectors')
+    photo = models.ForeignKey(Photo, verbose_name=_('Photo'), related_name='collectedphotos')
+    level = models.PositiveIntegerField(_('Level'), default=1)
+    leader_bonus = models.PositiveIntegerField(_('Leader skill percentage'), null=True)
+    skill_level = models.PositiveIntegerField(_('Skill level'), default=1)
+
+    @property
+    def skill_percentage(self):
+        return self.photo.skill_percentage + (self.skill_level - 1) * self.photo.skill_increment
+    @property
+    def skill_note_count(self):
+        return self.photo.skill_note_count + (self.skill_level - 1) * self.photo.skill_increment
+
+    @property
+    def skill(self):
+        return self.photo.skill_template.format({
+            k: getattr(self, k)
+            for k in templateVariables(self.photo.skill_template)
+        })
+
+    sub_skill_level = models.PositiveIntegerField(_('Sub skill level'), null=True)
+    @property
+    def sub_skill_amount(self):
+        return self.photo.sub_skill_amount + (self.sub_skill_level - 1) * self.photo.sub_skill_increment
+
+    @property
+    def sub_skill(self):
+        _sub_skill_variables = {k: getattr(self.photo, k)
+        for k in templateVariables(self.photo.sub_skill_template
+        )}
+        _sub_skill_variables['sub_skill_amount'] = self.sub_skill_amount
+        return self.photo.sub_skill_template.format(**_sub_skill_variables)
+
+    rank = models.PositiveIntegerField(_('Rank'), default=1)
+
+    # TODO: moment based things are the same across, do I need an intermediate model for moment things?
+
+    # percentage displayed on moments page for the card
+    moments_unlocked = models.PositiveIntegerField(_('Percent of moments unlocked'), default = 0)
+    # integer number of squares
+    bonus_moment_squares_unlocked = models.PositiveIntegerField(_('Number of moment squares unlocked past 100%'), default = 0)
+    @property
+    def special_shot_unlocked(self):
+        return self.moments_unlocked >= self.photo.special_shot_percentage
+
+    prefer_normal_shot = models.BooleanField(_('Prefer normal shot photo image'), default=False)
+
+    @property
+    def image(self):
+        return self.photo.image_special_shot if self.special_shot_unlocked and not self.prefer_normal_shot else self.photo.image
+
+    @property
+    def art(self):
+        return self.photo.art_special_shot if self.special_shot_unlocked and not self.prefer_normal_shot else self.photo.art
+
+    @property
+    def final_leader_skill_percentage(self):
+        if self.leader_bonus: return self.leader_bonus
+        if self.photo.rarity is 'UR' and self.bonus_moment_squares_unlocked is 16: return 70
+        _extra_squares = self.bonus_moment_squares_unlocked - 1
+        if self.photo.rarity is 'UR': _extra_squares = (self.bonus_moment_squares_unlocked // 4) - 1
+        if _extra_squares < 0: _extra_squares = 0
+        return self.photo.leader_skill_percentage + (_extra_squares * 3)
+
+    @property
+    def leader_skill(self):
+        _leader_skill_variables = {
+            k: getattr(self.photo, k)
+            for k in templateVariables(Photo.LEADER_SKILL_INFO['template'])
+        }
+        _leader_skill_variables['leader_skill_percentage'] = self.final_leader_skill_percentage
+        return Photo.LEADER_SKILL_INFO['template'].format(**_leader_skill_variables)
+
+    CROWN_OPTIONS = [150, 200]
+    CROWN_TYPES = [
+        'silver',
+        'gold',
+        'rainbow',
+    ]
+    CROWN_TEMPLATE = '+{crown_amount} {crown_attribute}'
+    SILVER_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
+    i_silver_crown_amount = models.PositiveIntegerField(_('Silver crown bonus'), choices=i_choices(SILVER_CROWN_AMOUNT_CHOICES), null=True)
+    SILVER_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    i_silver_crown_attribute = models.PositiveIntegerField(_('Silver crown attribute'), choices=i_choices(SILVER_CROWN_ATTRIBUTE_CHOICES), null=True)
+    @property
+    def silver_crown(self):
+        if self.silver_crown_attribute is None: return None
+        return CROWN_TEMPLATE.format(**{
+            k: getattr(self, 'silver_{}'.format(k))
+            for k in templateVariables(CROWN_TEMPLATE)
+        })
+
+    GOLD_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
+    i_gold_crown_amount = models.PositiveIntegerField(_('Gold crown bonus'), choices=i_choices(GOLD_CROWN_AMOUNT_CHOICES), null=True)
+    GOLD_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    i_gold_crown_attribute = models.PositiveIntegerField(_('Gold crown attribute'), choices=i_choices(GOLD_CROWN_ATTRIBUTE_CHOICES), null=True)
+    @property
+    def gold_crown(self):
+        if self.gold_crown_attribute is None: return None
+        return CROWN_TEMPLATE.format(**{
+            k: getattr(self, 'gold_{}'.format(k))
+            for k in templateVariables(CROWN_TEMPLATE)
+        })
+
+    RAINBOW_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
+    i_rainbow_crown_amount = models.PositiveIntegerField(_('Rainbow crown bonus'), choices=i_choices(RAINBOW_CROWN_AMOUNT_CHOICES), null=True)
+    RAINBOW_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    i_rainbow_crown_attribute = models.PositiveIntegerField(_('Rainbow crown attribute'), choices=i_choices(RAINBOW_CROWN_ATTRIBUTE_CHOICES), null=True)
+    @property
+    def rainbow_crown(self):
+        if self.rainbow_crown_attribute is None: return None
+        return CROWN_TEMPLATE.format(**{
+            k: getattr(self, 'rainbow_{}'.format(k))
+            for k in templateVariables(CROWN_TEMPLATE)
+        })
+
+    @property
+    def crown_dance_boost(self):
+        return sum([getattr(self, '{}_crown_amount'.format(v)) for v in CROWN_TYPES
+            if getattr(self, '{}_crown_attribute'.format(v)) is 'dance'])
+    @property
+    def crown_vocal_boost(self):
+        return sum([getattr(self, '{}_crown_amount'.format(v)) for v in CROWN_TYPES
+            if getattr(self, '{}_crown_attribute'.format(v)) is 'vocal'])
+    @property
+    def crown_charm_boost(self):
+        return sum([getattr(self, '{}_crown_amount'.format(v)) for v in CROWN_TYPES
+            if getattr(self, '{}_crown_attribute'.format(v)) is 'charm'])
+
+    custom_dance_stat = models.PositiveIntegerField(_('Dance'), null=True)
+    custom_vocal_stat = models.PositiveIntegerField(_('Vocal'), null=True)
+    custom_charm_stat = models.PositiveIntegerField(_('Charm'), null=True)
+
+    # pre moment stats
+    @property
+    def level_dance_stat(self):
+        if self.level == 1: return self.photo.dance_min
+        if self.level == self.photo.single_max_level: return self.photo.dance_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.dance_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.dance_min + ((self.level - 1) * self.photo.dance_single_copy_increment)
+        return self.photo.dance_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.dance_combined_increment)
+    @property
+    def level_vocal_stat(self):
+        if self.level == 1: return self.photo.vocal_min
+        if self.level == self.photo.single_max_level: return self.photo.vocal_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.vocal_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.vocal_min + ((self.level - 1) * self.photo.vocal_single_copy_increment)
+        return self.photo.vocal_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.vocal_combined_increment)
+    @property
+    def level_charm_stat(self):
+        if self.level == 1: return self.photo.charm_min
+        if self.level == self.photo.single_max_level: return self.photo.charm_single_copy_max
+        if self.level == self.photo.max_max_level: return self.photo.charm_max_copy_max
+        if self.level < self.photo.single_max_level:
+            return self.photo.charm_min + ((self.level - 1) * self.photo.charm_single_copy_increment)
+        return self.photo.charm_single_copy_max + ((self.level - self.photo.single_max_level) * self.photo.charm_combined_increment)
+
+    @property
+    def moment_squares_unlocked(self):
+        return ceil((self.moments_unlocked / 100) * self.photo.rarity_squares_in_moments) + (self.bonus_moment_squares_unlocked if self.photo.rarity is 'UR' else 0)
+
+    # squares go +30 dance->vocal->charm->big square
+    @property
+    def moment_dance_bonus(self):
+        return ceil(self.moment_squares_unlocked / 4) * 30
+    @property
+    def moment_vocal_bonus(self):
+        return ((self.moment_squares_unlocked // 4) + (1 if (self.moment_squares_unlocked % 4) >= 2 else 0)) * 30
+    @property
+    def moment_charm_bonus(self):
+        return ((self.moment_squares_unlocked // 4) + (1 if (self.moment_squares_unlocked % 4) >= 3 else 0)) * 30
+
+    @property
+    def display_dance(self):
+        if self.custom_dance_stat: self.custom_dance_stat
+        return self.level_dance_stat + self.moment_dance_bonus + self.crown_dance_boost
+    @property
+    def display_vocal(self):
+        if self.custom_vocal_stat: self.custom_vocal_stat
+        return self.level_vocal_stat + self.moment_vocal_bonus + self.crown_vocal_boost
+    @property
+    def display_charm(self):
+        if self.custom_charm_stat: self.custom_charm_stat
+        return self.level_charm_stat + self.moment_charm_bonus + self.crown_charm_boost
+
+    @property
+    def total_stats(self):
+        return self.display_dance + self.display_vocal + self.display_charm
+
+    def __unicode__(self):
+        if self.id:
+            return unicode(self.photo)
+        return super(CollectiblePhoto, self).__unicode__()
