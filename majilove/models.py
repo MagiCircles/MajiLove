@@ -149,7 +149,7 @@ class Photo(MagiModel):
 
     message_text = models.TextField(string_concat(_('Message text'), ' (', _('Japanese') + ')'), max_length=500, null=True)
     message_translation = models.TextField(_('Message translation'), max_length=500, null=True)
-    MESSAGE_TRANSLATIONs_CHOICES = ALL_ALT_LANGUAGES
+    MESSAGE_TRANSLATIONS_CHOICES = ALL_ALT_LANGUAGES
     d_message_translations = models.TextField(_('Message translation'), null=True)
     @property
     def t_message_translation(self):
@@ -405,7 +405,6 @@ class Photo(MagiModel):
     # should percentage be split into different variales for perfect score and cutin?
     skill_percentage = models.FloatField('{skill_percentage}', null=True)
     skill_percentage_int = property(lambda _a: int(_a.skill_percentage))
-
 
     # Subskills
     SUB_SKILL_TYPES = OrderedDict([
