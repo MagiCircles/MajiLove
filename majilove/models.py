@@ -573,7 +573,7 @@ class CollectiblePhoto(AccountAsOwnerModel):
         _leader_skill_variables['leader_skill_percentage'] = self.final_leader_skill_percentage
         return Photo.LEADER_SKILL_INFO['template'].format(**_leader_skill_variables)
 
-    CROWN_OPTIONS = [150, 200]
+    CROWN_OPTIONS = [150, 200] #Now only 200; change this to a variable
     CROWN_TYPES = [
         'silver',
         'gold',
