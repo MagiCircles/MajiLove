@@ -35,7 +35,6 @@ class IdolCollection(MagiCollection):
     queryset = models.Idol.objects.all()
     title = _('Idol')
     plural_title = _('Idols')
-    navbar_title = _('Idols')
     image = 'mic'
     translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
 
@@ -81,7 +80,6 @@ class PhotoCollection(MagiCollection):
     title = _('Photo')
     plural_title = _('Photos')
     icon = 'cards'
-    navbar_title = _('Photos')
     multipart = True
     form_class = forms.PhotoForm
 
@@ -134,3 +132,34 @@ class PhotoCollection(MagiCollection):
 
 
 ############################################################
+# Songs Collection
+
+SONG_FIELDS_PER_DIFFICULTY = ['notes', 'difficulty']
+
+SONGS_ICONS = {
+    'title':'id', 'romaji':'id', 'release':'date', 'length':'times'
+    }
+
+class SongCollection(MagiCollection):
+    queryset = models.Song.objects.all()
+    title = _('Song')
+    plural_title = _('Songs')
+    multipart = True
+    form_class = forms.SongForm
+    reportable = False
+    blockable = False
+    translated_fields = ('title', )
+    icon = 'song'
+    
+    #@TODO version images?
+
+    #@TODO CUTEFORM HERE //figure out idol/song connection first
+
+    def to_fields(self, view, item, *args, **kwargs):
+        fields = super(SongCollection, self).to_fields(view, item, *args, icons=SONGS_ICONS, images={
+    'attribute': staticImageURL(item.i_attribute, folder='i_attribute', extension='png'),
+    }, **kwargs)
+
+     
+
+
