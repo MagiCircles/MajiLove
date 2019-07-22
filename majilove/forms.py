@@ -14,3 +14,8 @@ class PhotoForm(AutoForm):
         fields = '__all__'
         save_owner_on_creation = True
 
+class SongForm(AutoForm):
+    class Meta(AutoForm.Meta):
+        model = models.Song
+        fields = '__all__'
+        save_owner_on_creation = True

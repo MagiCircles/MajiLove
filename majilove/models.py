@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import datetime, time
 from collections import OrderedDict
 from math import ceil
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.utils.translation import ugettext_lazy as _, string_concat, get_language
 from django.db import models
 from django.conf import settings as django_settings
@@ -51,27 +53,28 @@ class Idol(MagiModel):
     DESCRIPTIONS_CHOICES = ALL_ALT_LANGUAGES
     d_descriptions = models.TextField(_('Description'), null=True)
 
-    # in cm
-    height = models.PositiveIntegerField(_('Height'), null=True)
+    height = models.PositiveIntegerField(_('Height (cm)'), null=True)
 
-    weight = models.PositiveIntegerField(_('Weight'), null=True)
+    weight = models.PositiveIntegerField(_('Weight (kg)'), null=True)
 
     @property
     def display_weight(self):
         return self.weight or '?'
 
+    #Added '?' for Cecil and Ai
     BLOOD_TYPE_CHOICES = (
         'O',
         'A',
         'B',
         'AB',
+        '?',
     )
 
     i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_TYPE_CHOICES), null=True)
 
     @property
     def display_blood_type(self):
-        return self.blood_type or '?'
+        return self.blood_type #or '?'
 
     birthday = models.DateField(_('Birthday'), null=True, help_text='The year is not used, so write whatever')
 
@@ -126,7 +129,16 @@ class Photo(MagiModel):
 
     release_date = models.DateField(_('Release date'), null=True, db_index=True)
     idol = models.ForeignKey(Idol, verbose_name=_('Idol'), related_name='photos', db_index=True)
+    '''
+    HOW_TO_OBTAIN_CHOICES = [
+        ('permanent', _('Permanent')), # N Ranked starter photos
+        ('photoshoot', _('Photoshoot')), #Gacha photos
+        ('event', _('Event')), #Event photos
+    ]
 
+    i_how_to_obtain = models.PositiveIntegerField(_('How to obtain'), choices=i_choices(HOW_TO_OBTAIN_CHOICES), db_index=True)
+    #@TODO expand this section to link photos to specific photo sets and events
+    '''
     # Images
 
     # The square icon
@@ -211,12 +223,12 @@ class Photo(MagiModel):
         return self.rarity_max_levels[1] if self.combinable else self.rarity_max_levels
 
     COLOR_CHOICES = [
-        ('star', _('Star')), # Yellow
-        ('shine', _('Shine')), # Red
-        ('dream', _('Dream')), # Blue
+        ('star', _('Star (Yellow)')), # Yellow
+        ('shine', _('Shine (Red)')), # Red
+        ('dream', _('Dream (Blue)')), # Blue
     ]
 
-    i_color = models.PositiveIntegerField(_('Color'), choices=i_choices(COLOR_CHOICES), db_index=True)
+    i_color = models.PositiveIntegerField(_('Attribute (Color)'), choices=i_choices(COLOR_CHOICES), db_index=True)
 
     dance_min = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Minimum'), ')'), default=0)
     dance_single_copy_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Single copy maximum'), ')'), default=0)
@@ -290,8 +302,8 @@ class Photo(MagiModel):
     ])
 
     LEADER_SKILL_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in STATISTICS.items()]
-    i_leader_skill_stat = models.PositiveIntegerField('{t_leader_skill_stat}', choices=i_choices(LEADER_SKILL_STAT_CHOICES), null=True)
-    leader_skill_percentage = models.PositiveIntegerField('{leader_skill_percentage}', null=True)
+    i_leader_skill_stat = models.PositiveIntegerField('Leader skill stat', choices=i_choices(LEADER_SKILL_STAT_CHOICES), null=True)
+    leader_skill_percentage = models.PositiveIntegerField('Leader skill percentage', null=True)
 
     @property
     def leader_skill(self):
@@ -402,9 +414,9 @@ class Photo(MagiModel):
             for k in templateVariables(self.japanese_skill_template)
         })
 
-    skill_note_count = models.PositiveIntegerField('{skill_note_count}', null=True)
+    skill_note_count = models.PositiveIntegerField('Skill note count', null=True)
     # should percentage be split into different variales for perfect score and cutin?
-    skill_percentage = models.FloatField('{skill_percentage}', null=True)
+    skill_percentage = models.FloatField('Skill percentage', null=True)
     skill_percentage_int = property(lambda _a: int(_a.skill_percentage))
 
     # Subskills
@@ -453,8 +465,8 @@ class Photo(MagiModel):
             for k in templateVariables(self.japanese_sub_skill_template)
         })
 
-    sub_skill_amount = models.PositiveIntegerField('{sub_skill_amount}', null=True)
-    sub_skill_percentage = models.FloatField('{sub_skill_percentage}', null=True)
+    sub_skill_amount = models.PositiveIntegerField('Sub skill amount', null=True)
+    sub_skill_percentage = models.FloatField('Sub skill percentage', null=True)
     # Currently either 3k (gacha URs) or 2k (All other cards)
     sub_skill_increment = models.PositiveIntegerField(_('Sub skill level up increment'), null=True)
 
@@ -573,7 +585,7 @@ class CollectiblePhoto(AccountAsOwnerModel):
         _leader_skill_variables['leader_skill_percentage'] = self.final_leader_skill_percentage
         return Photo.LEADER_SKILL_INFO['template'].format(**_leader_skill_variables)
 
-    CROWN_OPTIONS = [150, 200] #Now only 200; change this to a variable
+    CROWN_OPTIONS = [200] #Now only 200; change this to a variable
     CROWN_TYPES = [
         'silver',
         'gold',
@@ -696,3 +708,102 @@ class CollectiblePhoto(AccountAsOwnerModel):
             return unicode(self.photo)
         return super(CollectiblePhoto, self).__unicode__()
 
+############################################################
+# Songs
+
+class Song(MagiModel):
+    collection_name = 'song'
+    owner = models.ForeignKey(User, related_name='added_songs', null=True)
+
+    DIFFICULTY_VALIDATORS = [
+        MinValueValidator(1),
+        MaxValueValidator(13),
+    ]
+
+    DIFFICULTIES = (
+        ('easy', 'EASY'),
+        ('normal', 'NORMAL'),
+        ('hard', 'HARD'),
+        ('pro', 'PRO'),
+        ('master', 'MASTER'),
+    )
+
+    SONGWRITERS_DETAILS = [
+        ('lyricist', _('Lyricist')),
+        ('composer', _('Composer')),
+        ('arranger', _('Arranger')),
+    ]
+
+    title = models.CharField(_('Title'), max_length=100)
+    TITLES_CHOICES = ALL_ALT_LANGUAGES
+    d_titles = models.TextField(null=True)
+
+    def __unicode__(self):
+        return self.t_title
+
+    romaji = models.CharField(string_concat(_('Title'), ' (',_('Romaji'), ')'), max_length=100, null=True)
+    cover = models.ImageField(_('Song Cover'), upload_to=uploadItem('s'), null=True)
+
+    ATTRIBUTE_CHOICES = (
+        ('star', _('Star')),
+        ('shine', _('Shine')),
+        ('dream', _('Dream')),
+    )
+
+    i_attribute = models.PositiveIntegerField(_('Attribute'), choices=i_choices(ATTRIBUTE_CHOICES), null=True)
+
+    '''
+    ABOUT UNIT_CHOICES & SUBUNIT_CHOICES
+    - instead of unit/subunit choices, I think we want singer choices, but there are many combinations...
+    - link to Idol models?
+
+    ABOUT VERSIONS_CHOICES
+    - not sure how game version impacts song choices (I don't think it does)
+
+    ABOUT LOCATIONS_CHOICES
+    - we probably don't need this, SL songs are created equal
+    - unless this is where we care about Normal vs Campaign songs?
+
+    unlock: (Normal Songs only)
+    - Normal songs unlock by playing parts of the main story 
+    - I forget what these messages look like
+
+    daily: --> Campaign Songs
+
+    '''
+
+    release = models.DateTimeField(_('Release date'), null=True)
+    #itunes_id = models.PositiveIntegerField(_('Preview'), help_text='iTunes ID', null=True)
+    length = models.PositiveIntegerField(_('Length'), help_text=_('in seconds'), null=True)
+    #bpm = models.PositiveIntegerField(_('Beats per minute'), null=True)
+
+    @property
+    def length_in_minutes(self):
+        return time.strftime('%M:%S', time.gmtime(self.length))
+
+    SONGWRITERS = (
+        ('lyricist', _('Lyricist')),
+        ('composer', _('Composer')),
+        ('arranger', _('Arranger')),
+    )
+
+    lyricist = models.CharField(_('Lyricist'), max_length=100, null=True)
+    composer = models.CharField(_('Composer'), max_length=100, null=True)
+    arranger = models.CharField(_('Arranger'), max_length=100, null=True)
+
+    
+    easy_notes = models.PositiveIntegerField(string_concat('EASY', ' - ', _('Notes')), null=True)
+    easy_difficulty = models.PositiveIntegerField(string_concat('EASY', ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    normal_notes = models.PositiveIntegerField(string_concat('NORMAL', ' - ', _('Notes')), null=True)
+    normal_difficulty = models.PositiveIntegerField(string_concat('NORMAL', ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    hard_notes = models.PositiveIntegerField(string_concat('HARD', ' - ', _('Notes')), null=True)
+    hard_difficulty = models.PositiveIntegerField(string_concat('HARD', ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    pro_notes = models.PositiveIntegerField(string_concat('PRO', ' - ', _('Notes')), null=True)
+    pro_difficulty = models.PositiveIntegerField(string_concat('PRO', ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+    master_notes = models.PositiveIntegerField(string_concat('MASTER', ' - ', _('Notes')), null=True)
+    master_difficulty = models.PositiveIntegerField(string_concat('MASTER', ' - ', _('Difficulty')), validators=DIFFICULTY_VALIDATORS, null=True)
+
+
+
+
+    
