@@ -38,7 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'corsheaders',
     'bootstrapform',
-    'bootstrap_form_horizontal',
+    #'bootstrap_form_horizontal',
     'rest_framework',
     'storages',
     'magi',
@@ -103,11 +103,9 @@ from django.utils.translation import ugettext_lazy as _
 
 LANGUAGES = (
     ('en', _('English')),
-    ('es', _('Spanish')),
-    ('fr', _('French')),
-    ('de', _('German')),
-    ('it', _('Italian')),
-    ('ru', _('Russian')),
+    ('zh-hans', _('Simplified Chinese')),
+    ('ja', _('Japanese')),
+    ('zh-hant', _('Traditional Chinese')),
 )
 
 LANGUAGE_CODE = 'en'

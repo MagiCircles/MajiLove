@@ -1,8 +1,15 @@
-from django.utils.translation import ugettext_lazy as _
-from magi.magicollections import MagiCollection, ActivityCollection as _ActivityCollection, BadgeCollection as _BadgeCollection, StaffConfigurationCollection as _StaffConfigurationCollection, DonateCollection as _DonateCollection
+from django.utils.formats import date_format
+from django.utils.translation import ugettext_lazy as _, get_language
+from magi.magicollections import (
+    MagiCollection,
+    ActivityCollection as _ActivityCollection,
+    BadgeCollection as _BadgeCollection,
+    StaffConfigurationCollection as _StaffConfigurationCollection,
+    DonateCollection as _DonateCollection,
+)
 from magi.default_settings import RAW_CONTEXT
 from majilove import models, forms
-from magi.utils import staticImageURL
+from magi.utils import CuteFormType, staticImageURL, setSubField
 
 ############################################################
 # Activities
@@ -31,19 +38,83 @@ class DonateCollection(_DonateCollection):
 ############################################################
 # Idol Collection
 
+IDOLS_ICONS = {
+    'name': 'id', 'cv_name': 'voice-actor',
+    'group': 'users', 'description': 'author',
+    'height': 'measurements', 'weight': 'measurements',
+    'blood_type': 'hp', 'birthday': 'birthday',
+    'astrological_sign': 'star',
+    'instrument': 'guitar', 'hometown': 'town',
+    'hobby': 'hobbies', 'color': 'palette',
+}
+
 class IdolCollection(MagiCollection):
     queryset = models.Idol.objects.all()
     title = _('Idol')
     plural_title = _('Idols')
-    navbar_title = _('Idols')
     image = 'mic'
-    translated_fields = ('name', 'description', 'instrument', 'hometown', 'hobby')
-
+    translated_fields = ('name', 'cv_name', 'description', 'instrument', 'hometown', 'hobby')
     form_class = forms.IdolForm
-    multipart = True
-
     reportable = False
     blockable = False
+  
+    filter_cuteform = {
+        'i_astrological_sign': {},
+        'i_blood_type': {
+            'type': CuteFormType.HTML,
+        },
+        'i_group': {
+            'type': CuteFormType.HTML,
+        },
+    }
+
+    def to_fields(self, view, item, extra_fields=None, exclude_fields=None, *args, **kwargs):
+        if exclude_fields is None: exclude_fields = ['japanese_name', 'japanese_cv_name'] 
+        if extra_fields is None: extra_fields = []
+        # Make sure weight appears if it is ?
+        if item.weight is None:
+            item.weight = item.display_weight
+        fields = super(IdolCollection, self).to_fields(view, item, *args, icons=IDOLS_ICONS, images={},
+            extra_fields=extra_fields, exclude_fields=exclude_fields, **kwargs)
+
+        # Idol Name
+        setSubField(fields, 'name', key='type', value='text_annotation')
+        setSubField(fields, 'name', key='annotation', value=item.japanese_name)
+        if get_language() == 'ja':
+            setSubField(fields, 'name', key='value', value=item.japanese_name)
+            setSubField(fields, 'name', key='annotation', value=item.name)
+
+        # Idol Voice Actor
+        setSubField(fields, 'cv_name', key='type', value='text_annotation')
+        setSubField(fields, 'cv_name', key='annotation', value=item.japanese_cv_name)
+        if get_language() == 'ja':
+            setSubField(fields, 'cv_name', key='value', value=item.japanese_cv_name)
+            setSubField(fields, 'cv_name', key='annotation', value=item.cv_name)
+
+        # Other
+        setSubField(fields, 'birthday', key='type', value='text')
+        setSubField(fields, 'birthday', key='value', value=lambda f: date_format(item.birthday, format='MONTH_DAY_FORMAT', use_l10n=True))
+        setSubField(fields, 'height', key='value', value=u'{} cm'.format(item.height))
+        setSubField(fields, 'weight', key='value', value=u'{} kg'.format(item.display_weight))
+        setSubField(fields, 'description', key='type', value='long_text')
+        setSubField(fields, 'color', key='type', value='color')
+
+        return fields
+   
+    class ListView(MagiCollection.ListView):
+        filter_form = forms.IdolFilterForm
+        per_line = 6
+        page_size = 20
+        default_ordering = 'i_group'
+
+    class AddView(MagiCollection.AddView):
+        staff_required = True
+        permissions_required = ['manage_main_items']
+
+    class EditView(MagiCollection.EditView):
+        staff_required = True
+        permissions_required = ['manage_main_items']
+        allow_delete = True
 
 ############################################################
 # Photo Collection
