@@ -1,3 +1,4 @@
+from django.db.models import Prefetch, Q
 from django.utils.formats import date_format
 from django.utils.translation import ugettext_lazy as _, get_language
 from magi.magicollections import (
@@ -9,7 +10,7 @@ from magi.magicollections import (
 )
 from magi.default_settings import RAW_CONTEXT
 from majilove import models, forms
-from magi.utils import CuteFormType, staticImageURL, setSubField
+from magi.utils import CuteFormType, staticImageURL, setSubField, FAVORITE_CHARACTERS_IMAGES, custom_item_template
 
 ############################################################
 # Activities
@@ -46,6 +47,7 @@ IDOLS_ICONS = {
     'astrological_sign': 'star',
     'instrument': 'guitar', 'hometown': 'town',
     'hobby': 'hobbies', 'color': 'palette',
+    'photos': 'cards',
 }
 
 class IdolCollection(MagiCollection):
@@ -59,7 +61,6 @@ class IdolCollection(MagiCollection):
     blockable = False
   
     filter_cuteform = {
-        'i_astrological_sign': {},
         'i_blood_type': {
             'type': CuteFormType.HTML,
         },
@@ -71,6 +72,7 @@ class IdolCollection(MagiCollection):
     def to_fields(self, view, item, extra_fields=None, exclude_fields=None, *args, **kwargs):
         if exclude_fields is None: exclude_fields = ['japanese_name', 'japanese_cv_name'] 
         if extra_fields is None: extra_fields = []
+
         # Make sure weight appears if it is ?
         if item.weight is None:
             item.weight = item.display_weight
@@ -100,6 +102,9 @@ class IdolCollection(MagiCollection):
         setSubField(fields, 'color', key='type', value='color')
 
         return fields
+
+    class ItemView(MagiCollection.ItemView):
+        fields_prefetched_together = ['photos']
    
     class ListView(MagiCollection.ListView):
         filter_form = forms.IdolFilterForm
@@ -120,8 +125,8 @@ class IdolCollection(MagiCollection):
 # Photo Collection
 
 PHOTO_STATS_FIELDS = [
-    u'{}{}'.format(_st, _sf) for _sf in [
-        '_min', '_single_copy_max', '_max_copy_max',
+    u'{}_{}'.format(_st, _sf) for _sf in [
+        'min', 'max', 'max_copy_max',
     ] for _st in [
         'dance', 'vocal', 'charm', 'overall',
     ]
@@ -130,64 +135,119 @@ PHOTO_STATS_FIELDS = [
 PHOTO_ICONS = {
     'name': 'id',
     'release_date': 'date',
+    'message_image': 'love-letter',
+    'message': 'love-letter',
+    'autograph': 'author',
 }
 
 PHOTO_IMAGES = {
-    'idol': 'mic',
+    'idol': 'mic.png', 'ww_release_date': 'language/world.png',
 }
 
 PHOTOS_EXCLUDE = [
-    'i_skill_type', 'i_leader_skill_stat', 'leader_skill_percentage', 'skill_note_count', 'skill_percentage', 'i_sub_skill_type', 'sub_skill_amount', 'sub_skill_percentage',
+    'i_skill_type', 'i_leader_skill_stat', 'leader_skill_percentage',
+    'skill_note_count', 'skill_percentage', 'i_sub_skill_type',
+    'sub_skill_amount', 'sub_skill_percentage',
 ] + [
-    'image', 'image_special_shot', 'art', 'art_special_shot', 'transparent', 'transparent_special_shot', 'full_photo', 'full_photo_special_shot',
-]
+    'image', 'image_special_shot', 'art', 'art_special_shot',
+    'transparent', 'transparent_special_shot', 'photo', 'photo_special_shot',
+    'japanese_name',
+] + PHOTO_STATS_FIELDS
 
 
 PHOTOS_ORDER = [
-    'id', 'name', 'idol', 'rarity', 'color', 'release_date', 'skill', 'sub_skill', 'images', 'full_photos', 'arts', 'transparents',
-] + PHOTO_STATS_FIELDS
+    'id', 'name', 'idol', 'rarity', 'attribute', 'release_date', 'ww_release_date',
+    'skill', 'sub_skill', 'leader_skill', 'images', 'photos', 'arts', 'transparents', 'autograph',
+    'message_image', 'message', 
+]
 
 class PhotoCollection(MagiCollection):
     queryset = models.Photo.objects.all()
     title = _('Photo')
     plural_title = _('Photos')
     icon = 'cards'
-    navbar_title = _('Photos')
     multipart = True
     form_class = forms.PhotoForm
-
     reportable = False
     blockable = False
-    translated_fields = ('name', 'message_translation')
+    translated_fields = ('name', 'message')
+
+    filter_cuteform = {
+        'idol': {
+            'to_cuteform': lambda k, v: FAVORITE_CHARACTERS_IMAGES[k],
+            'title': _('Idol'),
+            'extra_settings': {
+                'modal': 'true',
+                'modal-text': 'true',
+            },
+        },
+        'i_rarity': {},
+        'i_attribute': {},
+    }
 
     def to_fields(self, view, item, *args, **kwargs):
         _photo_images = PHOTO_IMAGES.copy()
         _photo_images.update({
-            'color': staticImageURL(item.color, folder='color', extension='png'),
-            'rarity': staticImageURL(item.rarity, folder='rarity', extension='png'),
+            'attribute': staticImageURL(item.i_attribute, folder='i_attribute', extension='png'),
+            'rarity': staticImageURL(item.i_rarity, folder='i_rarity', extension='png'),
+            'i_leader_skill_stat': staticImageURL(item.i_leader_skill_stat, folder='i_attribute', extension='.png') 
         })
         fields = super(PhotoCollection, self).to_fields(view, item, *args, icons=PHOTO_ICONS, images=_photo_images, **kwargs)
+        
+        # Name
+        setSubField(fields, 'name', key='type', value='text_annotation')
+        setSubField(fields, 'name', key='annotation', value=item.japanese_name if item.japanese_name is not None else '')
+        if item.t_name != item.name:
+            setSubField(fields, 'name', key='annotation', value=item.name or '')
+        
+        # WW Release Date
+        setSubField(fields, 'ww_release_date', key='verbose_name', value= _('Release date'))
+        setSubField(fields, 'ww_release_date', key='verbose_name_subtitle', value=_('Worldwide version'))
+
+        # Other
+        setSubField(fields, 'message', key='type', value='text')
+        setSubField(fields, 'message', key='verbose_name_subtitle', value=_('Text'))
         return fields
 
     class ItemView(MagiCollection.ItemView):
+        top_illustration='items/photoItem'
+        ajax_callback = 'loadPhoto'
+
         def to_fields(self, item, extra_fields=None, exclude_fields=None, order=None, *args, **kwargs):
             if extra_fields is None: extra_fields = []
             if exclude_fields is None: exclude_fields = []
             if order is None: order = PHOTOS_ORDER
             exclude_fields += PHOTOS_EXCLUDE
+
+            if item.message is None:
+                item.message = item.t_message
+
+            extra_fields.append(('id', {
+                'verbose_name': _('Album ID'),
+                'icon': 'id',
+                'type': 'text',
+                'value': item.id,
+            }))
             extra_fields.append(('skill', {
                 'verbose_name': _('Skill'),
                 'icon': item.skill_icon,
                 'type': 'text',
-                'value': item.skill,
+                'value': item.japanese_skill if get_language() == 'ja' else item.skill,
             }))
             extra_fields.append(('sub_skill', {
                 'verbose_name': _('Sub skill'),
+                'icon': 'scoreup',
                 'type': 'text',
-                'value': item.sub_skill,
+                'value': item.japanese_sub_skill if get_language() == 'ja' else item.sub_skill,
+            }))
+            extra_fields.append(('leader_skill', {
+                'verbose_name': _('Leader skill'),
+                'icon': 'statistics',
+                'type': 'text',
+                'value': item.japanese_leader_skill if get_language() == 'ja' else item.leader_skill,
             }))
             # Add images fields
-            for image, verbose_name in [('image', _('Icon')), ('art', _('Poster')), ('transparent', _('Transparent')), ('full_photo', (_('Photo')))]:
+            for image, verbose_name in [('image', _('Icon')), ('art', _('Poster')), ('transparent', _('Transparent')), ('photo', (_('Photo')))]:
                 if getattr(item, image):
                     extra_fields.append((u'{}s'.format(image), {
                         'verbose_name': verbose_name,
@@ -201,7 +261,15 @@ class PhotoCollection(MagiCollection):
                         ] if image_url],
                         'icon': 'pictures',
                     }))
-            return super(PhotoCollection.ItemView, self).to_fields(item, *args, extra_fields=extra_fields, exclude_fields=exclude_fields, order=order, **kwargs)
+            return super(PhotoCollection.ItemView, self).to_fields(
+                item, *args, extra_fields=extra_fields,exclude_fields=exclude_fields, order=order, **kwargs)
+
+    class ListView(MagiCollection.ListView):
+        item_template = custom_item_template
+        filter_form = forms.PhotoFilterForm
+        per_line = 3
+        page_size = 20
+        default_ordering = '-id'
 
 
 ############################################################

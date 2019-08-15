@@ -14,6 +14,14 @@
 @mainColor: #5acccd;
 @secondaryColor: #158399;
 
+@starColor: #ffe600;
+@shineColor: #ff337d;
+@dreamColor: #0098bf;
+
+@danceColor: #f57c9d;
+@vocalColor: #4bebd3;
+@charmColor: #ffb22b;
+
 /******************************************/
 /* Tools */
 
@@ -73,3 +81,74 @@ h1, h2, h3, h4, .title, .navbar, .btn-lg, .btn-xl {
 
 /******************************************/
 /* MagiCollections */
+
+.photo-image {
+    display:inline-block;
+    max-width:48% !important;
+}
+
+.photo-stats {
+	padding: 0;
+    padding-top: 20px;
+    font-weight: bold;
+    .btn:hover, btn:focus, btn.active, {
+        color: white;
+    }
+	.btn-group, .tab-content {
+	    margin: auto;
+	    width: 90%;
+	    max-width: 100%;
+	}
+	.btn-group {
+	    margin-bottom: 5px;
+	}
+	.tab-content {
+        text-align: center;
+        margin-left:auto;
+        margin-right:auto;
+        margin-bottom: 5px;
+	}
+}
+
+.stat-row {
+    margin-bottom: 5px;
+    border-radius: 5%;
+}
+
+.stat {
+    border-radius: inherit;
+    margin:inherit;
+}
+
+.star {
+    background-color:@starColor;
+    color: white;
+}
+
+.shine {
+    background-color: @shineColor;
+    color: white;
+}
+
+.dream {
+    background-color: @dreamColor;
+    color: white;
+}
+
+.dance {
+    background-color: @danceColor;
+    color: white;
+    font-weight: bold;
+}
+
+.vocal {
+    background-color: @vocalColor;
+    color: white;
+    font-weight: bold;
+}
+
+.charm {
+    background-color: @charmColor;
+    color: white;
+    font-weight: bold;
+}
