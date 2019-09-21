@@ -2,7 +2,7 @@
 {% if current == 'photo_list' %}
   <a href="{{ photo.item_url }}" data-ajax-url="{{ photo.ajax_item_url }}" data-ajax-title="{{ photo }}">
 {% endif %}
-    <figure style="margin-left:auto;margin-right:auto;">
+    <figure class="center">
         <img class="photo-image img-responsive"  src="{{ photo.photo_url }}" alt=""></img>{% if photo.photo_special_shot %}<img class="photo-image img-responsive" src="{{ photo.photo_special_shot_url }}" alt=""></img>{% endif %}
     </figure>
 {% if current == 'photo_list' %}</a>{% endif %}
@@ -17,7 +17,7 @@
         {% endfor %}
         </div>
         <div class="tab-content" data-tabs="photo-{{ photo.id }}">
-            {% for status, stats in photo.stats %}
+            {% for status, stats in photo.photo_stats %}
                 <div class="tab-pane{% if status == 'max' %} active{% endif %}" data-tab="photo-{{photo.id}}-{{status}}">
                     {% for field, localized, value in stats %}
                         <div class="stat-row">

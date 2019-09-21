@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 from math import ceil
-from django.utils.translation import ugettext_lazy as _, string_concat, get_language
-from django.db import models
 from django.conf import settings as django_settings
-from magi.models import User, uploadItem
-from magi.item_model import MagiModel, i_choices, getInfoFromChoices
+from django.db import models
+from django.utils.formats import date_format
+from django.utils.translation import ugettext_lazy as _, get_language, string_concat
 from magi.abstract_models import AccountAsOwnerModel, BaseAccount
-from magi.utils import templateVariables, staticImageURL
-
+from magi.item_model import getInfoFromChoices, i_choices, MagiModel
+from magi.models import uploadItem, User
+from magi.utils import staticImageURL, templateVariables
 
 ############################################################
 # Utility stuff
@@ -34,16 +34,7 @@ class Idol(MagiModel):
     NAME_SOURCE_LANGUAGES = ['ja']
     d_names = models.TextField(_('Name'), null=True)
 
-    @property
-    def t_name(self):
-        if get_language() == 'ja':
-            return self.japanese_name
-        return self.names.get(get_language(), self.name)
-
-    GROUP_CHOICES = (
-        u'ST☆RISH',
-        'QUARTET NIGHT',
-    )
+    GROUP_CHOICES = (u'ST☆RISH', 'QUARTET NIGHT')
     i_group = models.PositiveIntegerField(_('Group'), choices=i_choices(GROUP_CHOICES), null=True)
 
     cv_name = models.CharField(_('Voice actor'), help_text='in romaji', max_length=100, null=True)
@@ -52,46 +43,23 @@ class Idol(MagiModel):
     CV_NAME_SOURCE_LANGUAGES = ['ja']
     d_cv_names = models.TextField(_('Name'), null=True)
 
-    @property
-    def t_cv_name(self):
-        if get_language() == 'ja':
-            return self.japanese_cv_name
-        return self.names.get(get_language(), self.cv_name)
-
     description = models.TextField(_('Description'), max_length=1000, null=True)
     DESCRIPTIONS_CHOICES = ALL_ALT_LANGUAGES
     d_descriptions = models.TextField(_('Description'), null=True)
 
     height = models.PositiveIntegerField(_('Height'), help_text='in cm', null=True)
-    weight = models.PositiveIntegerField(_('Weight'), help_text='in kg', null=True)
-    @property
-    def display_weight(self):
-        return self.weight or '?'
+    weight = models.PositiveIntegerField(_('Weight'), help_text='in kg (0 = ?)', null=True)
 
-    BLOOD_TYPE_CHOICES = (
-        'O',
-        'A',
-        'B',
-        'AB',
-        '?',
-    )
+    BLOOD_TYPE_CHOICES = ('O', 'A', 'B', 'AB', '?')
     i_blood_type = models.PositiveIntegerField(_('Blood Type'), choices=i_choices(BLOOD_TYPE_CHOICES), null=True)
 
-    birthday = models.DateField(_('Birthday'), null=True, help_text='The year is not used, so write whatever')
+    birthday = models.DateField(_('Birthday'), null=True)
 
     ASTROLOGICAL_SIGN_CHOICES = (
-        ('Leo', _('Leo')),
-        ('Aries', _('Aries')),
-        ('Libra', _('Libra')),
-        ('Virgo', _('Virgo')),
-        ('Scorpio', _('Scorpio')),
-        ('Capricorn', _('Capricorn')),
-        ('Pisces', _('Pisces')),
-        ('Gemini', _('Gemini')),
-        ('Cancer', _('Cancer')),
-        ('Sagittarius', _('Sagittarius')),
-        ('Aquarius', _('Aquarius')),
-        ('Taurus', _('Taurus')),
+        ('Leo', _('Leo')), ('Aries', _('Aries')), ('Libra', _('Libra')),
+        ('Virgo', _('Virgo')), ('Scorpio', _('Scorpio')), ('Capricorn', _('Capricorn')),
+        ('Pisces', _('Pisces')), ('Gemini', _('Gemini')), ('Cancer', _('Cancer')),
+        ('Sagittarius', _('Sagittarius')), ('Aquarius', _('Aquarius')), ('Taurus', _('Taurus')),
     )
     i_astrological_sign = models.PositiveIntegerField(_('Astrological Sign'), choices=i_choices(ASTROLOGICAL_SIGN_CHOICES), null=True)
 
@@ -108,11 +76,17 @@ class Idol(MagiModel):
     d_hobbys = models.TextField(_('Hobby'), null=True)
 
     color = models.CharField('Color', help_text='Format: #XXXXXX', max_length=7)
-
     image = models.ImageField(_('Image'), upload_to=uploadItem('idol'))
 
     def __unicode__(self):
         return unicode(self.t_name)
+
+    ############################################################
+    # Display Fields
+
+    display_birthday = property(lambda f: date_format(f.birthday, format='MONTH_DAY_FORMAT', use_l10n=True))
+    display_height = property(lambda f: u'{} cm'.format(f.height))
+    display_weight = property(lambda f: u'{} kg'.format('?' if f.weight == 0 else f.weight))
 
     ############################################################
     # Reverse relations
@@ -120,7 +94,6 @@ class Idol(MagiModel):
     reverse_related = (
         { 'field_name': 'photos', 'verbose_name': _('Photos') },
     )
-
 
 ############################################################
 # Photos
@@ -140,43 +113,8 @@ class Photo(MagiModel):
     # Note: JST and EST (1AM)
     release_date = models.DateTimeField(_('Release date'), null=True, db_index=True)
     ww_release_date = models.DateTimeField(string_concat(_('Release date'), ' (', _('English version'), ')'), null=True)
+
     idol = models.ForeignKey(Idol, verbose_name=_('Idol'), related_name='photos', db_index=True)
-
-    # Images
-
-    # Icon
-    image = models.ImageField(_('Icon'), upload_to=uploadItem('photo/icon'), null=True)
-    image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/icon/specialshot'), null=True)
-
-    # Photo Image
-    photo = models.ImageField(_('Photo'), upload_to=uploadItem('photo'))
-    photo_special_shot = models.ImageField(string_concat(_('Photo'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
-
-    # Transparent
-    transparent = models.ImageField(_('Transparent'), upload_to=uploadItem('photo/transparent'), null=True)
-    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/transparent/specialshot'), null=True)
-
-    # Poster
-    art = models.ImageField(_('Poster'), upload_to=uploadItem('photo/poster'), null=True)
-    art_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/poster/specialshot'), null=True)
-
-    message_image = models.ImageField(_('Message'), upload_to=uploadItem('photo/message'), null=True)
-    autograph = models.ImageField(_('Autograph'), upload_to=uploadItem('photo/autograph'), null=True)
-
-    message = models.TextField(_('Message'), max_length=500, null=True)
-    japanese_message = models.TextField(string_concat(_('Message'), ' (', _('Japanese'),  ')'), max_length=500, null=True)
-    MESSAGE_SOURCE_LANGUAGES = ['ja']
-    MESSAGES_CHOICES = ALT_LANGUAGES_EXCEPT_JP
-    d_messages = models.TextField(_('Message'), null=True)
-
-    @property
-    def t_message(self):
-        default = self.name
-        if self.japanese_message is not None:
-            default = self.japanese_message
-        return self.names.get(get_language(), default)
-
-    # Photo statistics
 
     RARITIES = OrderedDict([
         ('N', {
@@ -204,130 +142,103 @@ class Photo(MagiModel):
             'max_levels': [50, 70],
         }),
     ])
-
     RARITY_CHOICES = [(_name, _name) for _name, _info in RARITIES.items()]
     i_rarity = models.PositiveIntegerField(_('Rarity'), choices=i_choices(RARITY_CHOICES), db_index=True)
-    rarity_max_levels = property(getInfoFromChoices('rarity', RARITIES, 'max_levels'))
-    rarity_special_shot_percentage = property(getInfoFromChoices('rarity', RARITIES, 'special_shot_percentage'))
-    rarity_squares_in_moments = property(getInfoFromChoices('rarity', RARITIES, 'squares_in_moments'))
 
-    COMBINABLE_RARITIES = ['R', 'SR', 'UR']
-
-    @property
-    def combinable(self):
-        return self.rarity in self.COMBINABLE_RARITIES
-
-    @property
-    def single_max_level(self):
-        return self.rarity_max_levels[0] if self.combinable else self.rarity_max_levels
-
-    @property
-    def max_max_level(self):
-        return self.rarity_max_levels[1] if self.combinable else self.rarity_max_levels
-
-    ATTRIBUTE_CHOICES = [
-        ('star', _('Star')), # Yellow
-        ('shine', _('Shine')), # Red
-        ('dream', _('Dream')), # Blue
-    ]
+    ATTRIBUTE_CHOICES = [('star', _('Star')), ('shine', _('Shine')), ('dream', _('Dream'))]
     i_attribute = models.PositiveIntegerField(_('Attribute'), choices=i_choices(ATTRIBUTE_CHOICES), db_index=True)
 
-    dance_min = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Minimum'), ')'), default=0)
-    dance_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Single copy maximum'), ')'), default=0)
-    dance_max_copy_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Maxed copy maximum'), ')'), default=0, null=True)
+    ############################################################
+    # Images
 
-    vocal_min = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Minimum'), ')'), default=0)
-    vocal_max = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Single copy maximum'), ')'), default=0)
-    vocal_max_copy_max = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Maxed copy maximum'), ')'), default=0, null=True)
+    # Icon
+    image = models.ImageField(_('Icon'), upload_to=uploadItem('photo/icon'), null=True)
+    image_special_shot = models.ImageField(string_concat(_('Icon'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/icon/specialshot'), null=True)
 
-    charm_min = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Minimum'), ')'), default=0)
-    charm_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Single copy maximum'), ')'), default=0)
-    charm_max_copy_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Maxed copy maximum'), ')'), default=0, null=True)
+    # Photo
+    photo = models.ImageField(_('Photo'), upload_to=uploadItem('photo'))
+    photo_special_shot = models.ImageField(string_concat(_('Photo'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/specialshot'), null=True)
 
-    @property
-    def levels(self):
-        levels = [
-            ('min', _('Level {}').format(1)),
-            ('max', _('Level {}').format(self.rarity_max_levels[0]))
-        ]
-        if self.combinable > 0:
-            levels += [('max_copy_max', _('Level {}').format(self.rarity_max_levels[1]))]
-        return levels
+    # Transparent
+    transparent = models.ImageField(_('Transparent'), upload_to=uploadItem('photo/transparent'), null=True)
+    transparent_special_shot = models.ImageField(string_concat(_('Transparent'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/transparent/specialshot'), null=True)
 
-    def stats(self):
-        stats = []
-        stat_choice = self.LEADER_SKILL_STAT_CHOICES
-        if get_language() == 'ja':
-            stat_choice = self.JAPANESE_LEADER_SKILL_STAT_CHOICES
-        stats = [
-            (_status, [(
-                _field,
-                _localized,
-                getattr(self, _field + '_' + _status),
-            ) for _field, _localized in stat_choice]) for _status, _localized in self.levels]
-        print stats
-        return stats
+    # Poster
+    art = models.ImageField(_('Poster'), upload_to=uploadItem('photo/poster'), null=True)
+    art_special_shot = models.ImageField(string_concat(_('Poster'), ' (', _('Special shot'), ')'), upload_to=uploadItem('photo/poster/specialshot'), null=True)
 
-    @property
-    def dance_single_copy_increment(self):
-        return float(self.dance_max - self.dance_min)/(self.single_max_level - 1)
-    @property
-    def dance_combined_increment(self):
-        return float(self.dance_max_copy_max - self.dance_max)/(self.max_max_level - self.single_max_level)
-    @property
-    def vocal_single_copy_increment(self):
-        return float(self.vocal_max - self.vocal_min)/(self.single_max_level - 1)
-    @property
-    def vocal_combined_increment(self):
-        return float(self.vocal_max_copy_max - self.vocal_max)/(self.max_max_level - self.single_max_level)
-    @property
-    def charm_single_copy_increment(self):
-        return float(self.charm_max - self.charm_min)/(self.single_max_level - 1)
-    @property
-    def charm_combined_increment(self):
-        return float(self.charm_max_copy_max - self.charm_max)/(self.max_max_level - self.single_max_level)
+    # Other
+    autograph = models.ImageField(_('Autograph'), upload_to=uploadItem('photo/autograph'), null=True)
+    message_image = models.ImageField(_('Message'), upload_to=uploadItem('photo/message'), null=True)
 
-    @property
-    def overall_min(self):
-        return self.dance_min + self.vocal_min + self.charm_min
+    message = models.TextField(_('Message'), max_length=500, null=True)
+    japanese_message = models.TextField(string_concat(_('Message'), ' (', _('Japanese'),  ')'), max_length=500, null=True)
+    MESSAGE_SOURCE_LANGUAGES = ['ja']
+    MESSAGES_CHOICES = ALT_LANGUAGES_EXCEPT_JP
+    d_messages = models.TextField(_('Message'), null=True)
 
-    @property
-    def overall_max(self):
-        return self.dance_max + self.vocal_max + self.charm_max
+    ############################################################
+    # Photo Stats
 
-    @property
-    def overall_max_copy_max(self):
-        return self.dance_max_copy_max + self.vocal_max_copy_max + self.charm_max_copy_max
+    dance_min = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Minimum'), ')'))
+    dance_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Single copy maximum'), ')'))
+    dance_max_copy_max = models.PositiveIntegerField(string_concat(_('Dance'), ' (', _('Maxed copy maximum'), ')'), null=True)
+
+    vocal_min = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Minimum'), ')'))
+    vocal_max = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Single copy maximum'), ')'))
+    vocal_max_copy_max = models.PositiveIntegerField(string_concat(_('Vocal'), ' (', _('Maxed copy maximum'), ')'), null=True)
+
+    charm_min = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Minimum'), ')'))
+    charm_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Single copy maximum'), ')'))
+    charm_max_copy_max = models.PositiveIntegerField(string_concat(_('Charm'), ' (', _('Maxed copy maximum'), ')'), null=True)
+
+    total_min = property(lambda f: f.dance_min + f.vocal_min + f.charm_min)
+    total_max = property(lambda f: f.dance_max + f.vocal_max + f.charm_max)
+    total_max_copy_max = property(lambda f: f.dance_max_copy_max + f.vocal_max_copy_max + f.charm_max_copy_max)
+        
+    ############################################################
+    # Skills
 
     # Leader Skill
-    LEADER_SKILL_INFO = {
-        'template': _(u'{t_attribute} {t_leader_skill_stat} +{leader_skill_percentage}%'),
-        'japanese_template': u'{t_attribute}の{t_leader_skill_stat}パフォーマンス{leader_skill_percentage}%上昇',
-    }
-
-    STATISTICS = OrderedDict([
+    LEADER_STATS = OrderedDict([
         ('dance', {
-            'translation': _('Dance').upper(),
+            'translation': _('Dance'),
             'japanese_translation': u'DANCE'
         }),
         ('vocal', {
-            'translation': _('Vocal').upper(),
+            'translation': _('Vocal'),
             'japanese_translation': u'VOCAL'
         }),
         ('charm', {
-            'translation': _('Charm').upper(),
+            'translation': _('Charm'),
             'japanese_translation': u'ACT'
         })
     ])
+    LEADER_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in LEADER_STATS.items()]
+    JAPANESE_LEADER_STAT_CHOICES = [(_name, _info['japanese_translation']) for _name, _info in LEADER_STATS.items()]
+    ALL_LEADER_STAT_CHOICES = LEADER_STAT_CHOICES + [('total', _('Total'))]
 
-    LEADER_SKILL_STAT_CHOICES = [(_name, _info['translation']) for _name, _info in STATISTICS.items()]
-    JAPANESE_LEADER_SKILL_STAT_CHOICES = [(_name, _info['japanese_translation']) for _name, _info in STATISTICS.items()]
-    i_leader_skill_stat = models.PositiveIntegerField('{t_leader_skill_stat}', choices=i_choices(LEADER_SKILL_STAT_CHOICES), null=True)
-    leader_skill_percentage = models.PositiveIntegerField('{leader_skill_percentage}', null=True)
+    i_leader_stat = models.PositiveIntegerField(_('Leader Skill'), choices=i_choices(LEADER_STAT_CHOICES), null=True)
+    japanese_leader_stat = property(getInfoFromChoices('stat', LEADER_STATS, 'japanese_translation'))
+    t_leader_stat = property(lambda f: f.japanese_stat if get_language() == 'ja' else MagiModel.t_stat.fget(f))
+
+    # Fetches the correct translation of stats for forms
+    @classmethod
+    def get_leader_stat_choices(self):
+        return self.JAPANESE_LEADER_STAT_CHOICES if get_language() == 'ja' else self.LEADER_STAT_CHOICES
+    @classmethod
+    def get_i_leader_stat_choices(self):
+        return i_choices(self.JAPANESE_LEADER_STAT_CHOICES if get_language() == 'ja' else self.LEADER_STAT_CHOICES)
+
+    LEADER_SKILL_INFO = {
+        'template': _(u'{t_attribute} {t_leader_stat} +{leader_skill_percentage}%'),
+        'japanese_template': u'{t_attribute}の{t_leader_stat}パフォーマンス{leader_skill_percentage}%上昇',
+    }   
+    leader_skill_percentage = models.PositiveIntegerField(string_concat(_('Leader Skill'), ' %'), null=True)
 
     @property
     def leader_skill(self):
-        if self.leader_skill_stat is None: return None
+        if self.leader_stat is None: return None
         return self.LEADER_SKILL_INFO['template'].format(**{
             k: getattr(self, k, '')
             for k in templateVariables(self.LEADER_SKILL_INFO['template'])
@@ -335,20 +246,19 @@ class Photo(MagiModel):
 
     @property
     def japanese_leader_skill(self):
-        if self.leader_skill_stat is None: return None
+        if self.leader_stat is None: return None
         return self.LEADER_SKILL_INFO['japanese_template'].format(**{
             k: getattr(self, k, '')
             for k in templateVariables(self.LEADER_SKILL_INFO['template'])
         })
 
-    # Skills
+    # Main Skill
     SKILL_TYPES = OrderedDict([
         ('score_notes', {
             'translation': _(u'Score notes'),
             'japanese_translation': u'スコアノーツ',
             'icon': 'scoreup',
             'increment': 1,
-
             'template': _(u'Score Notes +{skill_note_count}'),
             'japanese_template': u'スコアノーツを{skill_note_count}個追加',
         }),
@@ -357,7 +267,6 @@ class Photo(MagiModel):
             'japanese_translation': u'JUST PERFECTのスコア',
             'icon': 'scoreup',
             'increment': 0.3,
-
             'template': _(u'Perfect Score +{skill_percentage}%'),
             'japanese_template': u'JUST PERFECTのスコア{skill_percentage}%上昇',
         }),
@@ -366,27 +275,22 @@ class Photo(MagiModel):
             'japanese_translation': u'カットイン',
             'icon': 'scoreup',
             'increment': 10,
-
             'template': _(u'Cut-in Bonus Score +{skill_percentage_int}%'),
             'japanese_template': u'カットインボーナスのスコア{skill_percentage_int}%上昇',
         }),
         ('good_lock', {
-            'translation': _(u'Good lock'),
-            # need someone to check this, feels too long
+            'translation': _('{note_type} lock').format(note_type=string_concat(_('Good'), '(WW)/', _('Great'), '(JP)')),
             'japanese_translation': u'BADをGREATに',
             'icon': 'perfectlock',
             'increment': 1,
-
             'template': _(u'Bad > Good ({skill_note_count} Times)'),
             'japanese_template': u'BADを{skill_note_count}回GREATにする',
         }),
         ('great_lock', {
-            'translation': _(u'Great lock'),
-            # also seems long, need to check which comma to use
-            'japanese_translation': u'BAD,GREATをPERFECTに',
+            'translation': _('{note_type} lock').format(note_type=string_concat(_('Great'), '(WW)/', _('Perfect'), '(JP)')),
+            'japanese_translation': u'BAD、GREATをPERFECTに',
             'icon': 'perfectlock',
             'increment': 1,
-
             'template': _(u'Bad/Good > Great ({skill_note_count} Times)'),
             'japanese_template': u'BAD,GREATを{skill_note_count}回PERFECTにする',
         }),
@@ -395,18 +299,20 @@ class Photo(MagiModel):
             'japanese_translation': u'ライフ回復ノーツ',
             'icon': 'healer',
             'increment': 1,
-
             'template': _(u'Stamina Recovery Notes +{skill_note_count}'),
             'japanese_template': u'ライフ回復ノーツを{skill_note_count}個追加',
         }),
     ])
-
     SKILL_VARIABLES = ['skill_note_count', 'skill_percentage']
 
     SKILL_TYPE_CHOICES = [(_name, _info['translation']) for _name, _info in SKILL_TYPES.items()]
-
     i_skill_type = models.PositiveIntegerField(_('Skill'), choices=i_choices(SKILL_TYPE_CHOICES), null=True, db_index=True)
     japanese_skill_type = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'japanese_translation'))
+
+    skill_note_count = models.PositiveIntegerField('Skill Note Count', null=True)
+    skill_percentage = models.FloatField('Skill %', null=True)
+    skill_percentage_int = property(lambda _a: int(_a.skill_percentage))
+
     skill_icon = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'icon'))
     skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'template'))
     japanese_skill_template = property(getInfoFromChoices('skill_type', SKILL_TYPES, 'japanese_template'))
@@ -428,35 +334,30 @@ class Photo(MagiModel):
             for k in templateVariables(self.japanese_skill_template)
         })
 
-    skill_note_count = models.PositiveIntegerField('{skill_note_count}', null=True)
-    # should percentage be split into different variales for perfect score and cutin?
-    skill_percentage = models.FloatField('{skill_percentage}', null=True)
-    skill_percentage_int = property(lambda _a: int(_a.skill_percentage))
-
-    # Subskills
+    # Sub Skill
     SUB_SKILL_TYPES = OrderedDict([
         ('full_combo', {
             'translation': _(u'Full combo'),
             'japanese_translation': u'フルコンボ',
-
             'template': _(u'+{sub_skill_amount} score when clearing a song with a Full Combo'),
             'japanese_template': u'フルコンボクリア時+{sub_skill_amount}スコア',
         }),
         ('stamina', {
             'translation': _(u'Stamina based'),
-            # unsure about this one too
             'japanese_translation': u'LIFEでクリア時',
-
             'template': _(u'+{sub_skill_amount} score when clearing a song with {sub_skill_percentage}% Stamina'),
             'japanese_template': u'LIFE{sub_skill_percentage}%以上でクリア時+{sub_skill_amount}スコア',
         }),
     ])
-
     SUB_SKILL_VARIABLES = ['sub_skill_percentage', 'sub_skill_amount']
 
     SUB_SKILL_TYPE_CHOICES = [(_name, _info['translation']) for _name, _info in SUB_SKILL_TYPES.items()]
     i_sub_skill_type = models.PositiveIntegerField(_('Sub skill'), choices=i_choices(SUB_SKILL_TYPE_CHOICES), null=True)
     japanese_sub_skill_type = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'japanese_translation'))
+
+    sub_skill_amount = models.PositiveIntegerField('Sub Skill Amount', null=True)
+    sub_skill_percentage = models.FloatField('Sub Skill %', null=True)
+    sub_skill_increment = models.PositiveIntegerField('Sub Skill Level Up Increment', null=True)
 
     sub_skill_template = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'template'))
     japanese_sub_skill_template = property(getInfoFromChoices('sub_skill_type', SUB_SKILL_TYPES, 'japanese_template'))
@@ -477,13 +378,10 @@ class Photo(MagiModel):
             for k in templateVariables(self.japanese_sub_skill_template)
         })
 
-    sub_skill_amount = models.PositiveIntegerField('{sub_skill_amount}', null=True)
-    sub_skill_percentage = models.FloatField('{sub_skill_percentage}', null=True)
-    # Currently either 3k (gacha URs) or 2k (All other cards)
-    sub_skill_increment = models.PositiveIntegerField(_('Sub skill level up increment'), null=True)
+    ############################################################
+    # Caches
 
-    # Cache idol
-
+    # Idol
     _cache_idol_days = 20
     _cache_idol_last_update = models.DateTimeField(null=True)
     _cache_j_idol = models.TextField(null=True)
@@ -509,19 +407,67 @@ class Photo(MagiModel):
             'image': unicode(self.idol.image)
         }
 
+    # Stats
+    _cache_dance_rank = models.PositiveIntegerField(null=True)
+    _cache_vocal_rank = models.PositiveIntegerField(null=True)
+    _cache_charm_rank = models.PositiveIntegerField(null=True)
+    _cache_total_rank = models.PositiveIntegerField(null=True)
+
+    _cache_dance_rank_update_on_none = True
+    _cache_vocal_rank_update_on_none = True
+    _cache_charm_rank_update_on_none = True
+    _cache_total_rank_update_on_none = True
+
+    def to_cache_dance_rank(self):
+        return type(self).objects.filter(dance_max_copy_max__gt=self.dance_max_copy_max).values('dance_max_copy_max').distinct().count() + 1
+
+    def to_cache_vocal_rank(self):
+        return type(self).objects.filter(vocal_max_copy_max__gt=self.vocal_max_copy_max).values('vocal_max_copy_max').distinct().count() + 1
+
+    def to_cache_charm_rank(self):
+        return type(self).objects.filter(charm_max_copy_max__gt=self.charm_max_copy_max).values('charm_max_copy_max').distinct().count() + 1
+
+    def to_cache_total_rank(self):
+        rank = 1
+        for obj in type(self).objects.distinct():
+            if self.total_max_copy_max < obj.total_max_copy_max:
+                rank += 1
+        return rank
+
+    ############################################################
+    # Miscellaneous
+
+    rarity_max_levels = property(getInfoFromChoices('rarity', RARITIES, 'max_levels'))
+    rarity_special_shot_percentage = property(getInfoFromChoices('rarity', RARITIES, 'special_shot_percentage'))
+    rarity_squares_in_moments = property(getInfoFromChoices('rarity', RARITIES, 'squares_in_moments'))
+
+    COMBINABLE_RARITIES = ['R', 'SR', 'UR']
+    combinable = property(lambda f: f.rarity in f.COMBINABLE_RARITIES)
+    single_max_level = property(lambda f: f.rarity_max_levels[0] if self.combinable else self.rarity_max_levels)
+    max_max_level = property(lambda f: f.rarity_max_levels[1] if self.combinable else f.rarity_max_levels)
+
+    dance_single_copy_increment = property(lambda f: float(f.dance_max - f.dance_min)/(f.single_max_level - 1))
+    vocal_single_copy_increment = property(lambda f: float(f.vocal_max - f.dance_min)/(f.vocal_max_level - 1))
+    charm_single_copy_increment = property(lambda f: float(f.charm_max - f.charm_min)/(f.charm_max_level - 1))
+
+    dance_combined_increment = property(lambda f: float(f.dance_max_copy_max - f.dance_max)/(f.max_max_level - f.single_max_level))
+    vocal_combined_increment = property(lambda f: float(f.vocal_max_copy_max - f.vocal_max)/(f.max_max_level - f.single_max_level))
+    charm_combined_increment = property(lambda f: float(f.charm_max_copy_max - f.charm_max)/(f.max_max_level - f.single_max_level))
+
     def __unicode__(self):
         if self.id:
-            return u'{rarity} {idol_name} - {name}'.format(
+            return u'{rarity} {idol_name} {name}'.format(
                 rarity=self.rarity,
                 idol_name=self.cached_idol.t_name if self.cached_idol else '',
-                name=self.t_name,
+                name=string_concat('- ', self.t_name) if self.t_name is not None else '',
             )
         return u''
 
 ############################################################
 # Collectible Photos
+# Model not recently tested
 
-class CollectiblePhoto(AccountAsOwnerModel):
+''' class CollectiblePhoto(AccountAsOwnerModel):
     collection_name = 'collectiblephoto'
 
     account = models.ForeignKey(Account, verbose_name=_('Account'), related_name='photoscollectors')
@@ -606,7 +552,7 @@ class CollectiblePhoto(AccountAsOwnerModel):
     CROWN_TEMPLATE = '+{crown_amount} {crown_attribute}'
     SILVER_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
     i_silver_crown_amount = models.PositiveIntegerField(_('Silver crown bonus'), choices=i_choices(SILVER_CROWN_AMOUNT_CHOICES), null=True)
-    SILVER_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    SILVER_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_STAT_CHOICES
     i_silver_crown_attribute = models.PositiveIntegerField(_('Silver crown attribute'), choices=i_choices(SILVER_CROWN_ATTRIBUTE_CHOICES), null=True)
     @property
     def silver_crown(self):
@@ -618,7 +564,7 @@ class CollectiblePhoto(AccountAsOwnerModel):
 
     GOLD_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
     i_gold_crown_amount = models.PositiveIntegerField(_('Gold crown bonus'), choices=i_choices(GOLD_CROWN_AMOUNT_CHOICES), null=True)
-    GOLD_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    GOLD_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_STAT_CHOICES
     i_gold_crown_attribute = models.PositiveIntegerField(_('Gold crown attribute'), choices=i_choices(GOLD_CROWN_ATTRIBUTE_CHOICES), null=True)
     @property
     def gold_crown(self):
@@ -630,7 +576,7 @@ class CollectiblePhoto(AccountAsOwnerModel):
 
     RAINBOW_CROWN_AMOUNT_CHOICES = CROWN_OPTIONS
     i_rainbow_crown_amount = models.PositiveIntegerField(_('Rainbow crown bonus'), choices=i_choices(RAINBOW_CROWN_AMOUNT_CHOICES), null=True)
-    RAINBOW_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_SKILL_STAT_CHOICES
+    RAINBOW_CROWN_ATTRIBUTE_CHOICES = Photo.LEADER_STAT_CHOICES
     i_rainbow_crown_attribute = models.PositiveIntegerField(_('Rainbow crown attribute'), choices=i_choices(RAINBOW_CROWN_ATTRIBUTE_CHOICES), null=True)
     @property
     def rainbow_crown(self):
@@ -720,3 +666,4 @@ class CollectiblePhoto(AccountAsOwnerModel):
             return unicode(self.photo)
         return super(CollectiblePhoto, self).__unicode__()
 
+ '''
