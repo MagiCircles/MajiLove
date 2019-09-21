@@ -246,7 +246,6 @@ class PhotoCollection(MagiCollection):
             # Add images fields
             for image, verbose_name in [('image', _('Icon')), ('art', _('Poster')), ('transparent', _('Transparent')), ('photo', (_('Photo')))]:
                 if getattr(item, image, None):
-                    print 'adding the thing'
                     extra_fields.append((u'{}s'.format(image), {
                         'verbose_name': verbose_name,
                         'type': 'images',
