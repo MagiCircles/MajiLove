@@ -454,6 +454,30 @@ class Photo(MagiModel):
     vocal_combined_increment = property(lambda f: float(f.vocal_max_copy_max - f.vocal_max)/(f.max_max_level - f.single_max_level))
     charm_combined_increment = property(lambda f: float(f.charm_max_copy_max - f.charm_max)/(f.max_max_level - f.single_max_level))
 
+    @property
+    def levels(self):
+        levels = [
+            ('min', _('Level {}').format(1)),
+            ('max', _('Level {}').format(self.rarity_max_levels[0]))
+        ]
+        if self.combinable > 0:
+            levels += [('max_copy_max', _('Level {}').format(self.rarity_max_levels[1]))]
+        return levels
+
+    @property
+    def photo_stats(self):
+        stats = []
+        stat_choice = self.LEADER_STAT_CHOICES
+        if get_language() == 'ja':
+            stat_choice = self.JAPANESE_LEADER_STAT_CHOICES
+        stats = [
+            (_status, [(
+                _field,
+                _localized,
+                getattr(self, _field + '_' + _status),
+            ) for _field, _localized in stat_choice]) for _status, _localized in self.levels]
+        return stats
+   
     def __unicode__(self):
         if self.id:
             return u'{rarity} {idol_name} {name}'.format(
