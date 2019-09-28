@@ -1,0 +1,33 @@
+{% with photo=item %}
+{% if current == 'photo_list' %}
+  <a href="{{ photo.item_url }}" data-ajax-url="{{ photo.ajax_item_url }}" data-ajax-title="{{ photo }}">
+{% endif %}
+    <figure class="center">
+        <img class="photo-image img-responsive"  src="{{ photo.photo_url }}" alt=""></img>{% if photo.photo_special_shot %}<img class="photo-image img-responsive" src="{{ photo.photo_special_shot_url }}" alt=""></img>{% endif %}
+    </figure>
+{% if current == 'photo_list' %}</a>{% endif %}
+
+{% if current == 'photo_item_ajax' or current == 'photo_item' %}
+    <div class="photo-stats">
+        <div class="btn-group" data-toggle="buttons" data-control-tabs="photo-{{ photo.id }}">
+        {% for suffix, level in photo.levels %}
+            <label class="btn {{ photo.attribute }}" style="width: {% if photo.combinable %}33.333333333{% else %}50{% endif %}%" data-open-tab="photo-{{ photo.id }}-{{ suffix }}">
+                <input type="radio"{% if suffix == 'max' %} checked{% endif %}>{{ level }}</input>
+            </label>
+        {% endfor %}
+        </div>
+        <div class="tab-content" data-tabs="photo-{{ photo.id }}">
+            {% for status, stats in photo.photo_stats %}
+                <div class="tab-pane{% if status == 'max' %} active{% endif %}" data-tab="photo-{{photo.id}}-{{status}}">
+                    {% for field, localized, value in stats %}
+                        <div class="stat-row">
+                            <div class="col-xs-6 stat {{ field }}">{{ localized }}</div>
+                            <div class="col-xs-6 stat {{ field }}-border">{{ value }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+{% endwith %}

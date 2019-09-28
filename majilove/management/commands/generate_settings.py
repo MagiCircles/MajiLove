@@ -1,8 +1,9 @@
 import time, datetime
+from django.conf import settings as django_settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
-from django.conf import settings as django_settings
-from magi.tools import totalDonators, getStaffConfigurations
+from magi.tools import getStaffConfigurations, totalDonators
+from majilove import models
 
 def generate_settings():
 
@@ -25,12 +26,16 @@ def generate_settings():
 
     print 'Get the characters'
     favorite_characters = []
-    # all_idols = models.Idol.objects.all().order_by('name')
-    # favorite_characters = [(
-    #     idol.pk,
-    #     idol.name,
-    #     idol.square_image_url,
-    # ) for idol in all_idols]
+    all_idols = models.Idol.objects.all().order_by('name')
+    favorite_characters = [
+        (idol.pk, idol.name, idol.image_url) 
+    for idol in all_idols]
+    
+    print 'Get the colors'
+    user_colors = []
+    user_colors = [
+        (idol.name.replace(' ', ''), idol.t_name, idol.name.replace(' ', ''), idol.color)
+    for idol in all_idols]
 
     print 'Save generated settings'
     # STARTERS = ' + unicode(starters) + u'\n\
@@ -41,6 +46,7 @@ LATEST_NEWS = ' + unicode(latest_news) + u'\n\
 TOTAL_DONATORS = ' + unicode(total_donators) + u'\n\
 STAFF_CONFIGURATIONS = ' + unicode(staff_configurations) + u'\n\
 FAVORITE_CHARACTERS = ' + unicode(favorite_characters) + u'\n\
+USER_COLORS = ' + unicode(user_colors) + u'\n\
 GENERATED_DATE = datetime.datetime.fromtimestamp(' + unicode(time.time()) + u')\n\
 '
     print s

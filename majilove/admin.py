@@ -5,3 +5,4 @@ from majilove import models
 
 admin.site.register(models.Account)
 admin.site.register(models.Idol)
+admin.site.register(models.Photo)

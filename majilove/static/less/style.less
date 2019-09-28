@@ -14,6 +14,14 @@
 @mainColor: #5acccd;
 @secondaryColor: #158399;
 
+@starColor: #ffe600;
+@shineColor: #ff337d;
+@dreamColor: #0098bf;
+
+@danceColor: #f57c9d;
+@vocalColor: #4bebd3;
+@charmColor: #ffb22b;
+
 /******************************************/
 /* Tools */
 
@@ -73,3 +81,112 @@ h1, h2, h3, h4, .title, .navbar, .btn-lg, .btn-xl {
 
 /******************************************/
 /* MagiCollections */
+
+.center {
+    margin-left:auto;
+    margin-right:auto;
+    text-align:center;
+}
+
+.photo-image {
+    display:inline-block;
+    max-width:50% !important;
+}
+
+.photo-stats {
+	padding: 0;
+    padding-top: 20px;
+    font-weight: bold;
+    .active {
+        box-shadow: inset 0 3px 5px rgba(0,0,0,.125);
+    }
+    .btn, .btn:hover, btn:focus, btn.active, {
+        color: white;
+    }
+	.btn-group, .tab-content {
+	    margin: auto;
+	    width: 90%;
+	    max-width: 100%;
+	}
+	.btn-group {
+	    margin-bottom: 5px;
+	}
+	.tab-content {
+        text-align: center;
+        margin-left:auto;
+        margin-right:auto;
+        margin-bottom: 5px;
+	}
+}
+
+.stat-row {
+    margin-bottom: 5px;
+    border-radius: 5%;
+    .dance {
+        background-color: @danceColor;
+        color: white;
+        font-weight: bold;
+    }
+    .vocal {
+        background-color: @vocalColor;
+        color: white;
+        font-weight: bold;
+    }
+    .charm {
+        background-color: @charmColor;
+        color: white;
+        font-weight: bold;
+    }
+}
+
+.stat {
+    border-radius: inherit;
+    margin:inherit;
+}
+
+.star {
+    background-color:@starColor;
+    color: white;
+}
+
+.shine {
+    background-color: @shineColor;
+    color: white;
+}
+
+.dream {
+    background-color: @dreamColor;
+    color: white;
+}
+
+.total {
+    background-color: #006699;
+    color: white;
+    font-weight: bold;
+}
+
+#id_i_leader_stat + .cuteform {
+    .cuteform-elt {
+        padding: 0;
+        vertical-align: middle;
+        line-height: 30px;
+        width: 30px;
+        text-align: center;
+        span {
+            display: block;
+            border-radius: 50%;
+            font-size: 1.2em;
+            color: #ffffff;
+            font-weight: bold;
+        }
+    }
+    .cuteform-elt[data-cuteform-val="0"] span {
+        background-color: @danceColor;
+    }
+    .cuteform-elt[data-cuteform-val="1"] span {
+        background-color: @vocalColor;
+    }
+    .cuteform-elt[data-cuteform-val="2"] span {
+        background-color: @charmColor;
+    }
+}

@@ -3,6 +3,7 @@ import datetime, pytz
 from django.conf import settings as django_settings
 from django.utils.translation import ugettext_lazy as _
 from magi.default_settings import DEFAULT_ENABLED_PAGES
+from magi.utils import tourldash
 from majilove import models
 
 ############################################################
@@ -13,7 +14,7 @@ SITE_URL = 'http://maji.love/'
 SITE_IMAGE = 'majilove_collection.png'
 SITE_LOGO = 'majilove.png'
 EMAIL_IMAGE = 'majilove_collection_full.png'
-EMPTY_IMAGE = 'emptyicon.png'
+EMPTY_IMAGE = 'emptyicon.jpg'
 DONATE_IMAGE = 'donate.png'
 SITE_NAV_LOGO = 'majilove_title_white.png'
 SITE_STATIC_URL = '//localhost:{}/'.format(django_settings.DEBUG_PORT) if django_settings.DEBUG else '//i.maji.love/'
@@ -40,6 +41,12 @@ HASHTAGS = ['シャニライ', 'ShiningLive']
 GITHUB_REPOSITORY = ('MagiCircles', 'MajiLove')
 
 ############################################################
+# User preferences and profiles
+
+FAVORITE_CHARACTER_NAME = _('Idol')
+FAVORITE_CHARACTER_TO_URL = lambda link: (u'/idol/{pk}/'.format(pk=link.raw_value))
+
+############################################################
 # Donations
 
 DONATORS_STATUS_CHOICES = (
@@ -50,7 +57,6 @@ DONATORS_STATUS_CHOICES = (
     ('PRODUCER', _('Shining Super Star')),
     ('DEVOTEE', _('Shining Saotome')),
 )
-
 
 ############################################################
 # Prelaunch details
@@ -66,6 +72,8 @@ DISQUS_SHORTNAME = 'maji-love'
 ############################################################
 # Generated settings
 
-TOTAL_DONATORS = django_settings.TOTAL_DONATORS
-LATEST_NEWS = django_settings.LATEST_NEWS
-STAFF_CONFIGURATIONS = django_settings.STAFF_CONFIGURATIONS
+TOTAL_DONATORS = getattr(django_settings, 'TOTAL_DONATORS', None)
+LATEST_NEWS = getattr(django_settings, "LATEST_NEWS", None)
+STAFF_CONFIGURATIONS = getattr(django_settings, "STAFF_CONFIGURATIONS", None)
+FAVORITE_CHARACTERS = getattr(django_settings, 'FAVORITE_CHARACTERS', None)
+USER_COLORS = getattr(django_settings, 'USER_COLORS', None)
